@@ -69,8 +69,8 @@ Here are some examples:
   (Note: Use colon (`:`) as *delimiter* where white space is not desired;
   colon is removed after decode)
 
-* Input: `(またアラッディン　\ruby{lyfjlk}{usubmw}jajc)` <kbd>M-j</kbd> <kbd>M-j</kbd> <kbd>M-j</kbd>  
-  Output: `(またアラッディン　\ruby{洋燈}{ラムプ}とり)`  
+* Input: `(またAladdin　lyfjlk[usubmw]jajc)` <kbd>M-j</kbd> <kbd>M-j</kbd> <kbd>M-j</kbd>  
+  Output: `(またAladdin　洋燈[ラムプ]とり)`  
   (Note: Multiple <kbd>M-j</kbd> at a time is OK;
   it skips already decoded text as well as non T-Code characters)
 
