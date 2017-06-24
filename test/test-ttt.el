@@ -40,7 +40,7 @@
            ("ysksjsks/ajgjfkdt8p3;gpzjshdjtighdiakslghdhgia" ("わたしたちは氷砂糖をほしいくらいもたないでも" 46 0))
            ("あの Iha-Tovo kd,fhrjaoajrks風" ("のすきとおった" 14 1))
            ("うつくしい森で飾られた Morio:/v" ("市" 3 0))
-           ("(またAladdin　lyfjlk[ラムプ]とり)" ("洋燈" 6 8)))))
+           ("(またAladdin  lyfjlk[ラムプ]とり)" ("洋燈" 6 8)))))
     (dolist (test tests)
       (should (equal (cadr test)
                      (ttt--decode-substring (car test)))))))
@@ -80,16 +80,12 @@
            ("ysksjsks/ajgjfkdt8p3;gpzjshdjtighdiakslghdhgia%" "わたしたちは氷砂糖をほしいくらいもたないでも")
            ("yfkd% Iha-Tovo kd,fhrjaoajrks風%" "あの Iha-Tovo のすきとおった風")
            ("うつくしい森で飾られた Morio:/v%" "うつくしい森で飾られた Morio市")
-           ("(またAladdin　lyfjlk[usubmw]jajc)%%%" "(またAladdin　洋燈[ラムプ]とり)"))))
+           ("(またAladdin  lyfjlk[usubmw]jajc)%%%" "(またAladdin  洋燈[ラムプ]とり)"))))
     (dolist (test tests)
       (let* ((src (car test))
              (expected (cadr test))
              (actual (ttt--decode-at-marker src "%")))
-        (should (equal expected actual))
-        )
-      )
-    )
-  )
+        (should (equal expected actual))))))
 
 ;;
 ;; ttt-do-ttt
@@ -113,7 +109,7 @@
            "yd.djtjshdjfoxhgw7ig;eks" xfer " Morio:/vjd" xfer "\n"
            "jfcwm;kdqfigqfigm.je;aslkdbnhf" xfer "\n"
            "\n"
-           "(mdks" xfer "Aladdin:jf.zlyfjlk[usubmw]jajc)" xfer xfer xfer
+           "(mdks" xfer "Aladdin  lyfjlk[usubmw]jajc)" xfer xfer xfer
            "\n"
            ))
         (simulate-ttt-expected
@@ -122,7 +118,7 @@
                  "うつくしい森で飾られた Morio市、\n"
                  "郊外のぎらぎらひかる草の波。\n"
                  "\n"
-                 "(またAladdin　洋燈[ラムプ]とり)"
+                 "(またAladdin  洋燈[ラムプ]とり)"
                  "\n")))
     (should (equal simulate-ttt-expected
                    (simulate-ttt-with-temp-buffer simulate-ttt-inputs)))))
