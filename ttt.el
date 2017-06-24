@@ -1,6 +1,6 @@
-;;; ttt.el --- Tiny TT-Code Translation   -*- lexical-binding: t; -*-
+;;; ttt.el --- Tiny TT-code Translation   -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2004--2017  YUSE Yosihiro
+;; Copyright (C) 2004-2017  YUSE Yosihiro
 
 ;; Author: YUSE Yosihiro <yoyuse@gmail.com>
 ;; Keywords: input method, japanese
@@ -20,11 +20,17 @@
 
 ;;; Commentary:
 
-;; Setup
-;; -----
-;;
-;; (autoload 'ttt-do-ttt "ttt" nil t)
-;; (autoload 'ttt-isearch-do-ttt "ttt" nil t)
+;; ttt is yet another modeless Japanese input, or a simple and minimal
+;; implementation of TT-code, one of kanji direct input methods.
+
+;; ttt provides an easy way of inputting English-Japanese mixed text
+;; without switching modes. Inputting Japanese characters is done by
+;; means of simple decode of TT-code, rather than complex process such
+;; as in kana-kanji conversion.
+
+;; Setup:
+
+;; (require 'ttt)
 ;; (define-key global-map (kbd "M-j") 'ttt-do-ttt)
 ;; (define-key isearch-mode-map (kbd "M-j") 'ttt-isearch-do-ttt)
 ;;
@@ -32,15 +38,24 @@
 ;; ;; (setq tcode-isearch-enable-wrapped-search nil)
 ;;
 ;; ;; Optional setting
-;; (autoload 'ttt-jump-to-char-forward "ttt" nil t)
-;; (autoload 'ttt-jump-to-char-backward "ttt" nil t)
-;; (define-key global-map (kbd "C-,") 'ttt-jump-to-char-backward)
 ;; (define-key global-map (kbd "C-.") 'ttt-jump-to-char-forward)
+;; (define-key global-map (kbd "C-,") 'ttt-jump-to-char-backward)
+
+;; Usage:
+
+;; Type TT-code and hit M-j (`ttt-do-ttt'), which scans the TT-code
+;; string before the cursor on the currrent line and decodes it to
+;; Japanse text.
+
+;; TT-code string scanning goes backward from the cursor to the
+;; beginning of the line, or until a white space, any non-TT-code
+;; character or `ttt-delimiter' found. `ttt-delimiter' is removed
+;; after decode.
 
 ;;; Code:
 
 ;;
-;; Customizable
+;; Customization variables
 ;;
 
 (defgroup ttt nil
@@ -872,13 +887,13 @@
     "ち" "フ" "四" "地" "み" "楽" "午" "ご" "各" "光"
     "げ" "グ" "オ" "市" "株" "今" "台" "総" "与" "ズ"]
    ]
-  "*T-Code table.")
+  "*TT-code table.")
 
 ;;
 ;; Variables
 ;;
 
-(defvar ttt--state nil "State of T-Code decoder.")
+(defvar ttt--state nil "State of TT-code decoder.")
 (make-variable-buffer-local 'ttt--state)
 
 ;;
@@ -891,11 +906,11 @@
     (string-match-p (regexp-quote substr) str)))
 
 (defun ttt--reset()
-  "Reset state of T-Code decoder."
+  "Reset state of TT-code decoder."
   (setq ttt--state ttt-table))
 
 (defun ttt--trans (c)
-  "Take character C as input to T-code decoder, get output and return it."
+  "Take character C as input to TT-code decoder, get output and return it."
   (let* ((ch (string c))
          (k (ttt--index ttt-keys ch)))
     (if (or (null k) (not (arrayp ttt--state)) (<= (length ttt--state) k))
@@ -906,13 +921,13 @@
             (t (progn (ttt--reset) ""))))))
 
 (defun ttt--decode-string (str)
-  "Decode T-Code string STR to Japanese string."
+  "Decode TT-code string STR to Japanese string."
   (ttt--reset)
   (mapconcat 'ttt--trans (string-to-list str) ""))
 
 (defun ttt--decode-substring (str)
-  "Scan backward in STR, skipping tail (i.e. non T-Code string) and then
-getting body (i.e. T-Code string), decode body and return resulting
+  "Scan backward in STR, skipping tail (i.e. non-TT-code string) and then
+getting body (i.e. TT-code string), decode body and return resulting
 list (DECODED-BODY BODY-LEN TAIL-LEN)."
   (let* ((keys (string-to-list ttt-keys))
          (ls (string-to-list str))
@@ -977,7 +992,7 @@ list (DECODED-BODY BODY-LEN TAIL-LEN)."
 ;;
 
 (defun ttt--read-char (prompt)
-  "Read T-Code keys until they make a valid code, and return decoded character."
+  "Read TT-code keys until they make a valid code, and return decoded character."
   (let (c ch)
     (ttt--reset)
     (while (string-equal "" (setq ch (ttt--trans (setq c (read-char prompt)))))
@@ -1034,7 +1049,7 @@ list (DECODED-BODY BODY-LEN TAIL-LEN)."
 (defun ttt-jump-to-char-forward (&optional count)
   "Jump forward to COUNT-th occurrence of input char.
 Repeat use of this command repeats last jump.
-If input char is RET (or C-m), then read T-Code keys as input char."
+If input char is RET (or C-m), then read TT-code keys as input char."
   (interactive "p")
   (ttt-jump--main count 'ttt-jump-to-char-forward 'ttt-jump-to-char-backward
                   1 "Jump to char: " "Jump to char by ttt: "))
@@ -1043,7 +1058,7 @@ If input char is RET (or C-m), then read T-Code keys as input char."
 (defun ttt-jump-to-char-backward (&optional count)
   "Jump backward to COUNT-th occurrence of input char.
 Repeat use of this command repeats last jump.
-If input char is RET (or C-m), then read T-Code keys as input char."
+If input char is RET (or C-m), then read TT-code keys as input char."
   (interactive "p")
   (ttt-jump--main count 'ttt-jump-to-char-backward 'ttt-jump-to-char-forward
                   -1 "Back to char: " "Back to char by ttt: "))
