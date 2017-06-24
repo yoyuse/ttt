@@ -1,17 +1,18 @@
 # ttt
 
-ttt (Tiny TT-Code Translation program) is a kind of Japanese input for Emacs.
+ttt is a kind of Japanese input for Emacs.
 
-ttt provides modeless Japanese input.
+ttt provides a *modeless Japanese input* with TT-code.
 That is, with ttt there is no need to switch modes
-when inputting English-Japanese mixed text.
-Moreover, input with ttt is done by simple decode of TT-Code,
-rather than complex process such as kana-kanji conversion.
+when inputting English-Japanese mixed text;
+inputting Japanese characters is done by simple decode of TT-code,
+rather than complex process such as in kana-kanji conversion.
 
-On the other hand, ttt does not provide any helper functions
+ttt intends a simple and minimal implementation of *kanji direct input*
+with a single Emacs Lisp file,
+and does not provide any helper functions
 such as bushu conversion, mazegaki conversion, code help or
-virtual keyboard, which are familiar to [T-code](http://openlab.jp/tcode/ "Home of T-Code") or
-[kanchoku](https://github.com/kanchoku) users.
+virtual keyboard at present.
 
 ## Requirements
 
@@ -19,12 +20,10 @@ virtual keyboard, which are familiar to [T-code](http://openlab.jp/tcode/ "Home 
 
 ## Installation
 
-Put ttt.el into somewhere in `load-path`.
-Then add following to .emacs or init.el:
+Put ttt.el into `load-path` and add following to .emacs or init.el:
 
 ```emacs-lisp
-(autoload 'ttt-do-ttt "ttt" nil t)
-(autoload 'ttt-isearch-do-ttt "ttt" nil t)
+(require 'ttt)
 (define-key global-map (kbd "M-j") 'ttt-do-ttt)
 (define-key isearch-mode-map (kbd "M-j") 'ttt-isearch-do-ttt)
 
@@ -32,87 +31,86 @@ Then add following to .emacs or init.el:
 ;; (setq tcode-isearch-enable-wrapped-search nil)
 
 ;; Optional setting
-(autoload 'ttt-jump-to-char-forward "ttt" nil t)
-(autoload 'ttt-jump-to-char-backward "ttt" nil t)
-(define-key global-map (kbd "C-,") 'ttt-jump-to-char-backward)
 (define-key global-map (kbd "C-.") 'ttt-jump-to-char-forward)
+(define-key global-map (kbd "C-,") 'ttt-jump-to-char-backward)
 ```
 
 ## Usage
 
-### Inputting Japanese text
+### Inputting
 
-Type TT-Code and hit <kbd>M-j</kbd> (`ttt-do-ttt`),
-which scans the T-Code string before cursor on the current line
+Type TT-code and hit <kbd>M-j</kbd> (`ttt-do-ttt`),
+which scans the TT-code string before the cursor on the current line
 and decodes it to Japanese text.
 
-Here are some examples:
+* Input:
+  `ysksjsks/ajgjdjfkdt8p3;gpzjshdjtighdiakslghdhgia` <kbd>M-j</kbd>
+* Result:
+  `わたしたちは、氷砂糖をほしいくらいもたないでも`
+
+TT-code string scanning goes backward from the cursor
+to the beginning of the line,
+or until a white space or any non-TT-code character found.
 
 * Input:
-  `ysksjsks/ajgjdjfkdt8p3;gpzjshdjtighdiakslghdhgia` <kbd>M-j</kbd>  
-  Result:
-  `わたしたちは、氷砂糖をほしいくらいもたないでも`  
+  `yfkd` <kbd>M-j</kbd> ` Iha-Tovo kd,fhrjaoajrksqr` <kbd>M-j</kbd>
+* Result:
+  `あの Iha-Tovo のすきとおった風`
+
+Use a colon (`:`) as the *delimiter* where a white space is not desired;
+the colon is removed after decode.
 
 * Input:
-  `yfkd` <kbd>M-j</kbd> ` Iha-Tovo kd,fhrjaoajrksqr` <kbd>M-j</kbd>  
-  Result:
-  `あの Iha-Tovo のすきとおった風`  
-  (Note:  T-Code string scan goes backward
-  until white space or non-T-Code character found)
+  `うつくしい森で飾られた Morio:/v` <kbd>M-j</kbd>
+* Result:
+  `うつくしい森で飾られた Morio市`
+
+Multiple decode at a time is permissible.
 
 * Input:
-  `うつくしい森で飾られた Morio:/v` <kbd>M-j</kbd>  
-  Result:
-  `うつくしい森で飾られた Morio市`  
-  (Note: Use colon (`:`) as *delimiter* where white space is not desired;
-  colon is removed after decode)
+  `(またAladdin  lyfjlk[usubmw]jajc)` <kbd>M-j</kbd> <kbd>M-j</kbd> <kbd>M-j</kbd>
+* Result:
+  `(またAladdin  洋燈[ラムプ]とり)`
 
-* Input:
-  `(またAladdin　lyfjlk[usubmw]jajc)` <kbd>M-j</kbd> <kbd>M-j</kbd> <kbd>M-j</kbd>  
-  Result:
-  `(またAladdin　洋燈[ラムプ]とり)`  
-  (Note: Multiple <kbd>M-j</kbd> are OK;
-  each <kbd>M-j</kbd> skips already decoded text
-  as well as non-T-Code characters)
-
-### Isearch with ttt
+### Isearching
 
 Though ttt is available also in isearch, it works *not incrementally*.
-For example, searching character "草", which is encoded to "sl" in T-Code,
+For example, searching character "草", which is encoded to "sl" in TT-code,
 would be done as below:
 
 1. Hit <kbd>C-s</kbd> to start isearch, followed by typing `sl`
-1. Emacs attempts to search `sl` which is probably not found,
-   yielding `Failing I-search: sl` error
-1. Ignore error and proceed to hit <kbd>M-j</kbd>
-1. Then Emacs echoes `I-search: 草` and finds "草" finally
+1. Emacs attempts to search `sl`, which is not found,
+   resulting in `Failing I-search: sl` error
+1. Ignore the error and proceed to hit <kbd>M-j</kbd>
+1. Then Emacs echoes `I-search: 草` and the search of "草" hits finally
 
-This behavior,
-caused from that ttt is actually a kind of postfix conversion,
-is not the best, but it is a trade-off for keeping ttt simple.
+This behavior is not the best;
+it is a trade-off for keeping ttt simple and consistent.
 
-### Alternative searching
+### Single character searching
 
-ttt.el provides `ttt-jump-to-char-forward` and `ttt-jump-to-char-backward`,
+As alternative searching, ttt.el provides
+<kbd>C-.</kbd> (`ttt-jump-to-char-forward`)
+and <kbd>C-,</kbd> (`ttt-jump-to-char-backward`),
 which are similar to Vim's normal mode commands <kbd>f</kbd> and <kbd>F</kbd>,
-with T-Code enhancement.
+with TT-code enhancement.
 
-Call `ttt-jump-to-char-forward`, hit <kbd>RET</kbd> or <kbd>C-m</kbd>
-and type T-Code string for a Japanese character,
-then cursor jumps forward to that character,
-while `ttt-jump-to-char-backward` jumps backward.
+Hit <kbd>C-.</kbd> followd by  <kbd>RET</kbd> or <kbd>C-m</kbd>
+then type TT-code string for a single Japanese character,
+and cursor jumps forward to the character,
+while <kbd>C-,</kbd> jumps backward.
 
-Typing a normal ASCII character 
+Typing a normal ASCII character
 instead of hitting <kbd>RET</kbd> or <kbd>C-m</kbd>
 just moves the cursor to the character itself.
 
-Repeat use of the commands repeats last jump.
+Repeat use of the commands repeats the last jump.
 
 ## Customization
 
 ### Using ttt with Dvorak keyboard
 
-Add following, or something like, to .emacs or init.el:
+Add following to .emacs or init.el:
 
 ``` emacs-lisp
 (setq ttt-keys "1234567890',.pyfgcrlaoeuidhtns;qjkxbmwvz")
@@ -126,16 +124,19 @@ To set delimiter to `-`, for example, add following to .emacs or init.el:
 (setq ttt-delimiter ?-)
 ```
 
-### Defining TT-Code
+### Rewriting decode rules
 
-Decode of TT-Code is defined with variable `ttt-table`.
-The value of `ttt-table` must be an array of 40 elements,
+At present ttt.el does not provide a convenient way of customizing decode rules.
+Here is given only a summary how the rules are implemented.
+
+ttt.el defines the decode rules with variable `ttt-table`.
+The value of `ttt-table` is an array of 40 elements,
 where each element is either `nil`, string or another array of 40 elements.
 
-Number 40 here agrees with length of `ttt-keys`,
+The number 40 agrees with the length of `ttt-keys`
 which defaults to `"1234567890qwertyuiopasdfghjkl;zxcvbnm,./"`.
 `ttt-table` is constructed so that
-its *n*th element correnspond to *n*th key of `ttt-keys`.
+its *n*th element should correnspond to *n*th key of `ttt-keys`.
 
 For example, decode of `kd` is defined as character `の`,
 because `k` is 27th key of `ttt-keys`, `d` is 22nd,
