@@ -43,11 +43,19 @@
 ;; Customizable
 ;;
 
-(defvar ttt-keys "1234567890qwertyuiopasdfghjkl;zxcvbnm,./"
-  "*T-Code keys.")
+(defgroup ttt nil
+  "Tiny TT-code Translation."
+  :group 'mule)
 
-(defvar ttt-delimiter ?:
-  "*Delimiter between T-Code and non-T-Code text.")
+(defcustom ttt-keys "1234567890qwertyuiopasdfghjkl;zxcvbnm,./"
+  "TT-code keys."
+  :type 'string
+  :group 'ttt)
+
+(defcustom ttt-delimiter ?:
+  "Delimiter between TT-code and non-TT-code text."
+  :type 'character
+  :group 'ttt)
 
 (defvar ttt-table
   [
