@@ -97,29 +97,26 @@
       (while inputs
         (setq input (car inputs)
               inputs (cdr inputs))
-        (if (eq input 'xfer)
-            (ttt-do-ttt)
-          (insert input))))
+        (cond ((eq input 'M-j) (ttt-do-ttt))
+              ((eq input 'RET) (insert "\n"))
+              (t (insert input)))))
     (buffer-substring-no-properties (point-min) (point-max))))
 
 (ert-deftest test-simulate-ttt ()
   (let ((simulate-ttt-inputs
-         '("yfkd" xfer " Iha-Tovo kd,fhrjaoajrksqrjd" xfer "\n"
-           "xqhgiaf6kgp.ksug;gia.dvfhd;bigjd" xfer "\n"
-           "yd.djtjshdjfoxhgw7ig;eks" xfer " Morio:/vjd" xfer "\n"
-           "jfcwm;kdqfigqfigm.je;aslkdbnhf" xfer "\n"
-           "\n"
-           "(mdks" xfer "Aladdin  lyfjlk[usubmw]jajc)" xfer xfer xfer
-           "\n"
-           ))
+         '("yfkd" M-j " Iha-Tovo kd,fhrjaoajrksqrjd" M-j RET
+           "xqhgiaf6kgp.ksug;gia.dvfhd;bigjd" M-j RET
+           "yd.djtjshdjfoxhgw7ig;eks" M-j " Morio:/vjd" M-j RET
+           "jfcwm;kdqfigqfigm.je;aslkdbnhf" M-j RET
+           RET
+           "(mdks" M-j "Aladdin  lyfjlk[usubmw]jajc)" M-j M-j M-j RET))
         (simulate-ttt-expected
-         (concat "あの Iha-Tovo のすきとおった風、\n"
-                 "夏でも底に冷たさをもつ青いそら、\n"
-                 "うつくしい森で飾られた Morio市、\n"
-                 "郊外のぎらぎらひかる草の波。\n"
+         (concat "あの Iha-Tovo のすきとおった風、" "\n"
+                 "夏でも底に冷たさをもつ青いそら、" "\n"
+                 "うつくしい森で飾られた Morio市、" "\n"
+                 "郊外のぎらぎらひかる草の波。" "\n"
                  "\n"
-                 "(またAladdin  洋燈[ラムプ]とり)"
-                 "\n")))
+                 "(またAladdin  洋燈[ラムプ]とり)" "\n")))
     (should (equal simulate-ttt-expected
                    (simulate-ttt-with-temp-buffer simulate-ttt-inputs)))))
 
