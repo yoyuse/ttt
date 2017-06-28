@@ -1,18 +1,13 @@
 # ttt
 
-ttt is a kind of Japanese input for Emacs.
+ttt is another modeless Japanese input for Emacs, or a simple and
+minimal implementation of TT-code, one of kanji direct input
+methods.
 
-ttt provides a *modeless Japanese input* with TT-code.
-That is, with ttt there is no need to switch modes
-when inputting English-Japanese mixed text;
-inputting Japanese characters is done by simple decode of TT-code,
-rather than complex process such as in kana-kanji conversion.
-
-ttt intends a simple and minimal implementation of *kanji direct input*
-with a single Emacs Lisp file,
-and does not provide any helper functions
-such as bushu conversion, mazegaki conversion, code help or
-virtual keyboard at present.
+ttt provides an easy way of inputting English-Japanese mixed text
+without switching modes. Inputting Japanese characters is done by
+means of simple decode of TT-code, rather than complex process such
+as in kana-kanji conversion.
 
 ## Requirements
 
@@ -65,7 +60,7 @@ the colon is removed after decode.
 * Result:
   `うつくしい森で飾られた Morio市、`
 
-Multiple decode at a time is permissible.
+Multiple decode at a time is allowable.
 
 * Input:
   `(またAladdin  lyfjlk[usubmw]jajc)` <kbd>M-j</kbd> <kbd>M-j</kbd> <kbd>M-j</kbd>
@@ -82,7 +77,7 @@ would be done as below:
 1. Emacs attempts to search `sl`, which is not found,
    resulting in `Failing I-search: sl` error
 1. Ignore the error and proceed to hit <kbd>M-j</kbd>
-1. Then Emacs echoes `I-search: 草` and the search of "草" hits finally
+1. Then Emacs echoes `I-search: 草` and the search hits "草" finally
 
 This behavior is not the best;
 it is a trade-off for keeping ttt simple and consistent.
@@ -118,15 +113,21 @@ Add following to .emacs or init.el:
 
 ### Changing delimiter
 
-To set delimiter to `-`, for example, add following to .emacs or init.el:
+To set delimiter to `-`, add following to .emacs or init.el:
 
 ``` emacs-lisp
 (setq ttt-delimiter ?-)
 ```
 
+Or, to set to Space, add following:
+
+``` emacs-lisp
+(setq ttt-delimiter ?\ )
+```
+
 ### Rewriting decode rules
 
-At present ttt.el does not provide a convenient way of customizing decode rules.
+Currently ttt.el does not provide a convenient way of customizing decode rules.
 Here is given only a summary how the rules are implemented.
 
 ttt.el defines the decode rules with variable `ttt-table`.

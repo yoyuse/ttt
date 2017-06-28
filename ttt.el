@@ -20,8 +20,9 @@
 
 ;;; Commentary:
 
-;; ttt is yet another modeless Japanese input, or a simple and minimal
-;; implementation of TT-code, one of kanji direct input methods.
+;; ttt is another modeless Japanese input for Emacs, or a simple and
+;; minimal implementation of TT-code, one of kanji direct input
+;; methods.
 
 ;; ttt provides an easy way of inputting English-Japanese mixed text
 ;; without switching modes. Inputting Japanese characters is done by
