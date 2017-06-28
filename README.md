@@ -44,26 +44,26 @@ which scans the TT-code string before the cursor on the current line
 and decodes it to Japanese text.
 
 * Input:
-  `ysksjsks/ajgjdjfkdt8p3;gpzjshdjtighdiakslghdhgia` <kbd>M-j</kbd>
+  `ysksjsks/ajgjdjfkdt8p3;gpzjshdjtighdiakslghdhgiajd` <kbd>M-j</kbd>
 * Result:
-  `わたしたちは、氷砂糖をほしいくらいもたないでも`
+  `わたしたちは、氷砂糖をほしいくらいもたないでも、`
 
 TT-code string scanning goes backward from the cursor
 to the beginning of the line,
 or until a white space or any non-TT-code character found.
 
 * Input:
-  `yfkd` <kbd>M-j</kbd> ` Iha-Tovo kd,fhrjaoajrksqr` <kbd>M-j</kbd>
+  `yfkd` <kbd>M-j</kbd> ` Iha-Tovo kd,fhrjaoajrksqrjd` <kbd>M-j</kbd>
 * Result:
-  `あの Iha-Tovo のすきとおった風`
+  `あの Iha-Tovo のすきとおった風、`
 
 Use a colon (`:`) as the *delimiter* where a white space is not desired;
 the colon is removed after decode.
 
 * Input:
-  `うつくしい森で飾られた Morio:/v` <kbd>M-j</kbd>
+  `うつくしい森で飾られた Morio:/vjd` <kbd>M-j</kbd>
 * Result:
-  `うつくしい森で飾られた Morio市`
+  `うつくしい森で飾られた Morio市、`
 
 Multiple decode at a time is permissible.
 
