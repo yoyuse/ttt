@@ -1025,7 +1025,7 @@ list (DECODED-BODY BODY-LEN TAIL-LEN)."
       (message "Repeating jump to char %c" ttt-jump--char))))
 
 (defun ttt-jump--main (count jump jump-reverse sign prompt prompt-ttt)
-  (let ((mark-set nil) char)
+  (let (char point)
     (cond ((eq last-command jump)
            (ttt-jump--repeat (* ttt-jump--sign count)))
           ((eq last-command jump-reverse)
@@ -1033,7 +1033,7 @@ list (DECODED-BODY BODY-LEN TAIL-LEN)."
            (ttt-jump--repeat (* ttt-jump--sign count)))
           (t
            (setq ttt-jump--sign sign)
-           (unless mark-active (push-mark) (setq mark-set t))
+           (setq point (point))
            (setq char (read-char (propertize prompt 'face 'minibuffer-prompt)))
            (if (eq char ?\C-m)
                (setq char (string-to-char
@@ -1041,9 +1041,11 @@ list (DECODED-BODY BODY-LEN TAIL-LEN)."
                             (propertize prompt-ttt 'face 'minibuffer-prompt)))))
            (if (not (characterp char))  ; XXX: command call key as input char
                (ttt-jump--repeat (* ttt-jump--sign count))
-             (ttt-jump--sub char (* ttt-jump--sign count)))))
-    (if (< count 0) (setq ttt-jump--sign (- ttt-jump--sign)))
-    (if mark-set (message "Mark set"))))
+             (ttt-jump--sub char (* ttt-jump--sign count)))
+           (when (and (/= point (point))
+                      (not mark-active))
+             (push-mark point nil nil))))
+    (if (< count 0) (setq ttt-jump--sign (- ttt-jump--sign)))))
 
 ;;;###autoload
 (defun ttt-jump-to-char-forward (&optional count)
