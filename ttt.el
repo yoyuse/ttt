@@ -1,6 +1,6 @@
 ;;; ttt.el --- Tiny TT-code Translation   -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2004-2017  YUSE Yosihiro
+;; Copyright (C) 2004-2018  YUSE Yosihiro
 
 ;; Author: YUSE Yosihiro <yoyuse@gmail.com>
 ;; Keywords: input method, japanese
@@ -150,7 +150,7 @@
       "" "" "" "" "" "" "" "峙" "佇" ""
       "" "" "" "讀" "" "孵" "檻" "" "揄" ""]
      ;; 43w
-     ["" "" "墟" "" "" "" "" "躊" "" ""
+     ["" "" "墟" "" "" "禮" "" "躊" "" ""
       "" "" "懺" "偕" "" "凭" "" "" "逞" ""
       "" "" "" "" "" "疼" "" "躓" "" ""
       "" "" "" "" "" "" "" "" "" ""]
