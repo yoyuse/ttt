@@ -1,6 +1,6 @@
 ;;; ttt.el --- Tiny TT-code Translation   -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2004-2018  YUSE Yosihiro
+;; Copyright (C) 2004-2019  YUSE Yosihiro
 
 ;; Author: YUSE Yosihiro <yoyuse@gmail.com>
 ;; Keywords: input method, japanese
@@ -68,9 +68,13 @@
   :type 'string
   :group 'ttt)
 
-(defcustom ttt-delimiter ?:
+;; (defcustom ttt-delimiter ?:
+;;   "Delimiter between TT-code and non-TT-code text."
+;;   :type 'character
+;;   :group 'ttt)
+(defcustom ttt-delimiter ":"
   "Delimiter between TT-code and non-TT-code text."
-  :type 'character
+  :type 'string
   :group 'ttt)
 
 (defvar ttt-table
@@ -941,8 +945,12 @@ list (DECODED-BODY BODY-LEN TAIL-LEN)."
     (while (and (<= 0 j) (memq (nth j ls) keys))
       (setq j (1- j)))
     (setq dst (ttt--decode-string (substring str (1+ j) (1+ i))))
-    (if (and (<= 0 j) (= (nth j ls) ttt-delimiter))
-        (setq j (1- j)))
+    ;; (if (and (<= 0 j) (= (nth j ls) ttt-delimiter))
+    ;;     (setq j (1- j)))
+    (if (and (<= 0 j)
+             (string-suffix-p ttt-delimiter (substring str 0 (1+ j))))
+        (setq j (- j (length ttt-delimiter))))
+    ;;
     (list dst (- i j) (- len i 1))))
 
 ;;;###autoload

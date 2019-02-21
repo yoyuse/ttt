@@ -116,13 +116,13 @@ Add following to .emacs or init.el:
 To set delimiter to `-`, add following to .emacs or init.el:
 
 ``` emacs-lisp
-(setq ttt-delimiter ?-)
+(setq ttt-delimiter "-")
 ```
 
 Or, to set to Space, add following:
 
 ``` emacs-lisp
-(setq ttt-delimiter ?\ )
+(setq ttt-delimiter " ")
 ```
 
 ### Rewriting decode rules
