@@ -46,7 +46,7 @@
 
 ;; Type TT-code and hit M-j (`ttt-do-ttt'), which scans the TT-code
 ;; string before the cursor on the currrent line and decodes it to
-;; Japanse text.
+;; Japanese text.
 
 ;; TT-code string scanning goes backward from the cursor to the
 ;; beginning of the line, or until a white space, any non-TT-code
@@ -69,14 +69,15 @@
   :group 'ttt)
 
 (defcustom ttt-delimiter ":"
-  "Delimiter between TT-code and non-TT-code text."
+  "Delimiter between TT-code and non-TT-code text.
+This variable is *DEPRECATED* and now has no effect."
   :type 'string
   :group 'ttt)
 
 (defcustom ttt-spacing 'french
   "Spacing between TT-code and non-TT-code text.
-- 'french    Space is not removed after translation
-- 'japanese  Space is removed after translation"
+- 'french    Space is not removed after decode
+- 'japanese  Space is removed after decode"
   :type 'symbol
   :group 'ttt)
 
@@ -953,56 +954,97 @@
 ;;         (setq j (- j (length ttt-delimiter))))
 ;;     (list dst (- i j) (- len i 1))))
 
+;; (defun ttt--backward (str)
+;;   "Scan backward in STR, skipping tail (i.e. non-TT-code string) and then
+;; getting body (i.e. TT-code string), decode body and return resulting
+;; list (DECODED-BODY BODY-LEN TAIL-LEN TRIM-LEN)."
+;;   (let* ((keys (string-to-list ttt-keys))
+;;          (ls (string-to-list str))
+;;          (len (length ls))
+;;          (i (1- len))
+;;          j dst
+;;          k (trim 0))
+;;     (while (and (<= 0 i) (not (memq (nth i ls) keys)))
+;;       (setq i (1- i)))
+;;     (setq j i)
+;;     (while (and (<= 0 j) (memq (nth j ls) keys))
+;;       (setq j (1- j)))
+;;     (setq k j)
+;;     (while (and (<= 0 k) (not (memq (nth k ls) keys)))
+;;       (setq k (1- k)))
+;;     (setq dst (ttt--decode-string (substring str (1+ j) (1+ i))))
+;;     (cond ((eq ttt-spacing 'french)
+;;            (when (string-equal " " (substring str (1+ k) (1+ j)))
+;;              (setq j (1- j))
+;;              (if (string-suffix-p " " (substring str (1+ i)))
+;;                  (setq trim 1)
+;;                (setq dst (concat " " dst)))))
+;;           ((eq ttt-spacing 'japanese)
+;;            (when (string-equal " " (substring str (1+ k) (1+ j)))
+;;              (setq j (1- j))
+;;              (when (string-suffix-p " " (substring str (1+ i)))
+;;                (setq trim 1)
+;;                (setq dst (concat " " dst)))))
+;;           (t nil))
+;;     (list dst (- i j) (- len i 1 trim) trim)))
+
+(defun ttt--space (lead space)
+  "Return number of spaces to be inserted."
+  (let* ((keys (string-to-list ttt-keys))
+         (ch (and (< 0 (length lead))
+                  (car (last (string-to-list lead))))))
+    (cond ((eq ttt-spacing 'french)
+           (cond ((null ch) space)
+                 ((not (memq ch keys)) space)
+                 ((memq ch '(?/ ?')) (if (= 2 space) 0 space))
+                 ((memq ch '(?, ?. ?\;)) (if (= 2 space) 0 space))
+                 (t (if (= 2 space) 0 space))))
+          ((eq ttt-spacing 'japanese)
+           (cond ((null ch) space)
+                 ((not (memq ch keys)) space)
+                 ((memq ch '(?/ ?')) (if (<= space 2) (1- space) space))
+                 ((memq ch '(?, ?. ?\;)) (if (= 2 space) 0 space))
+                 (t (if (<= space 2) (1- space) space))))
+          (t space))))
+
 (defun ttt--backward (str)
   "Scan backward in STR, skipping tail (i.e. non-TT-code string) and then
 getting body (i.e. TT-code string), decode body and return resulting
-list (DECODED-BODY BODY-LEN TAIL-LEN TRIM-LEN)."
+list (DECODED-BODY BODY-LEN TAIL-LEN)."
   (let* ((keys (string-to-list ttt-keys))
          (ls (string-to-list str))
          (len (length ls))
          (i (1- len))
-         j dst
-         k (trim 0))
+         j dst k l space)
     (while (and (<= 0 i) (not (memq (nth i ls) keys)))
       (setq i (1- i)))
     (setq j i)
     (while (and (<= 0 j) (memq (nth j ls) keys))
       (setq j (1- j)))
     (setq k j)
-    (while (and (<= 0 k) (not (memq (nth k ls) keys)))
+    (while (and (<= 0 k) (eq ?\  (nth k ls)))
       (setq k (1- k)))
+    ;;(setq l k) (while (<= 0 l) (setq l (1- l)))
+    (setq l -1)
+    (setq space (ttt--space (substring str (1+ l) (1+ k)) (- j k)))
     (setq dst (ttt--decode-string (substring str (1+ j) (1+ i))))
-    (cond ((eq ttt-spacing 'french)
-           (when (string-equal " " (substring str (1+ k) (1+ j)))
-             (setq j (1- j))
-             (if (string-suffix-p " " (substring str (1+ i)))
-                 (setq trim 1)
-               (setq dst (concat " " dst)))))
-          ((eq ttt-spacing 'japanese)
-           (when (string-equal " " (substring str (1+ k) (1+ j)))
-             (setq j (1- j))
-             (when (string-suffix-p " " (substring str (1+ i)))
-               (setq trim 1)
-               (setq dst (concat " " dst)))))
-          (t nil))
-    (list dst (- i j) (- len i 1 trim) trim)))
+    (list (concat (make-string space ?\ ) dst)
+          (- i k)
+          (- len i 1))))
 
 ;;;###autoload
 (defun ttt-do-ttt ()
   "Do ttt."
   (interactive)
   (let* ((src (buffer-substring (point-at-bol) (point)))
-         (len (length src))
+         ;;(len (length src))
          (ls (ttt--backward src))
          (dst (car ls))
          (body-len (car (cdr ls)))
          (tail-len (car (cdr (cdr ls))))
-         (trim (car (cdr (cdr (cdr ls)))))
-         (end (- (point) tail-len trim))
-         (beg (- end body-len))
-         )
+         (end (- (point) tail-len))
+         (beg (- end body-len)))
     (save-excursion
-      (delete-char (- trim))
       (goto-char beg)
       (insert dst)
       (delete-region (point) (+ (point) body-len)))))
@@ -1018,8 +1060,7 @@ list (DECODED-BODY BODY-LEN TAIL-LEN TRIM-LEN)."
          (dst (car ls))
          (body-len (car (cdr ls)))
          (tail-len (car (cdr (cdr ls))))
-         (trim (car (cdr (cdr (cdr ls)))))
-         (n (+ body-len tail-len trim)))
+         (n (+ body-len tail-len)))
     (while (< i n)
       (isearch-pop-state)
       (setq i (1+ i)))
@@ -1028,8 +1069,8 @@ list (DECODED-BODY BODY-LEN TAIL-LEN TRIM-LEN)."
       (isearch-process-search-string (substring dst i (1+ i))
                                      (substring dst i (1+ i)))
       (setq i (1+ i)))
-    (setq i (- len trim tail-len))
-    (while (< i (- len trim))
+    (setq i (- len tail-len))
+    (while (< i len)
       (isearch-process-search-string (substring src i (1+ i))
                                      (substring src i (1+ i)))
       (setq i (1+ i)))))
