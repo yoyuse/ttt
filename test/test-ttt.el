@@ -1,6 +1,6 @@
 ;;; test-ttt.el --- test for ttt   -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2017  YUSE Yosihiro
+;; Copyright (C) 2017-2019  YUSE Yosihiro
 
 ;; Author: YUSE Yosihiro <yoyuse@gmail.com>
 
@@ -25,6 +25,20 @@
 (require 'ttt)
 
 (message "Running tests on Emacs %s" emacs-version)
+
+;;
+;; ttt--decode-substring
+;;
+
+(defun ttt--decode-substring (str)
+  (let* ((ls (ttt--backward str))
+         (dst (nth 0 ls))
+         (src-len (nth 1 ls))
+         (tail-len (nth 2 ls)))
+    (while (string-prefix-p " " dst)
+      (setq dst (substring dst 1)
+            src-len (1- src-len)))
+    (list dst src-len tail-len)))
 
 ;;
 ;; ttt--decode-substring
@@ -120,6 +134,60 @@
     (should (equal simulate-ttt-expected
                    (simulate-ttt-with-temp-buffer simulate-ttt-inputs)))))
 
+;;
+;; spacing
+;;
+
+(ert-deftest test-ttt-spacing ()
+  (let ((ttt-spacing-inputs '("http:mwnsleyrkw" M-j RET
+                              "http::mwnsleyrkw" M-j RET
+                              "http: mwnsleyrkw" M-j RET
+                              "ascii ;lz/" M-j RET
+                              "ascii:;lz/" M-j RET
+                              "ascii :;lz/" M-j RET
+                              "Tyrhsjz" M-j RET
+                              "T yrhsjz" M-j RET
+                              "1 in" M-j RET
+                              "/ ;nxxlnjk" M-j RET
+                              "# /euejs" M-j RET
+                              "#ie/x" M-j RET
+                              "1. pduale" M-j RET))
+        (ttt-spacing-expected-french
+         (concat "httpプロトコル" "\n"
+                 "http:プロトコル" "\n"
+                 "http: プロトコル" "\n"
+                 "ascii 文字" "\n"
+                 "ascii文字" "\n"
+                 "ascii 文字" "\n"
+                 "Tコード" "\n"
+                 "T コード" "\n"
+                 "1 個" "\n"
+                 "/ 正規表現" "\n"
+                 "# 見出し" "\n"
+                 "#タグ" "\n"
+                 "1. リスト" "\n"))
+        (ttt-spacing-expected-japanese
+         (concat "httpプロトコル" "\n"
+                 "http:プロトコル" "\n"
+                 "http: プロトコル" "\n"
+                 "ascii文字" "\n"
+                 "ascii文字" "\n"
+                 "ascii 文字" "\n"
+                 "Tコード" "\n"
+                 "Tコード" "\n"
+                 "1個" "\n"
+                 "/正規表現" "\n"
+                 "# 見出し" "\n"
+                 "#タグ" "\n"
+                 "1. リスト" "\n"))
+        )
+    (let ((ttt-spacing 'french))
+      (should (equal ttt-spacing-expected-french
+                     (simulate-ttt-with-temp-buffer ttt-spacing-inputs))))
+    (let ((ttt-spacing 'japanese))
+      (should (equal ttt-spacing-expected-japanese
+                     (simulate-ttt-with-temp-buffer ttt-spacing-inputs))))
+    ))
 
 ;;
 ;; do tests

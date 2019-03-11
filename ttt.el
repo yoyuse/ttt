@@ -69,8 +69,7 @@
   :group 'ttt)
 
 (defcustom ttt-delimiter ":"
-  "Delimiter between TT-code and non-TT-code text.
-This variable is *DEPRECATED* and now has no effect."
+  "Delimiter between TT-code and non-TT-code text."
   :type 'string
   :group 'ttt)
 
@@ -988,24 +987,72 @@ This variable is *DEPRECATED* and now has no effect."
 ;;           (t nil))
 ;;     (list dst (- i j) (- len i 1 trim) trim)))
 
+;; natural spacing (by delimiter space)
+;;
+;; (defun ttt--space (lead space)
+;;   "Return number of spaces to be inserted."
+;;   (let* ((keys (string-to-list ttt-keys))
+;;          (ch (and (< 0 (length lead))
+;;                   (car (last (string-to-list lead))))))
+;;     (cond ((eq ttt-spacing 'french)
+;;            (cond ((null ch) space)
+;;                  ((not (memq ch keys)) space)
+;;                  ((memq ch '(?/ ?')) (if (= 2 space) 0 space))
+;;                  ((memq ch '(?, ?. ?\;)) (if (= 2 space) 0 space))
+;;                  (t (if (= 2 space) 0 space))))
+;;           ((eq ttt-spacing 'japanese)
+;;            (cond ((null ch) space)
+;;                  ((not (memq ch keys)) space)
+;;                  ((memq ch '(?/ ?')) (if (<= space 2) (1- space) space))
+;;                  ((memq ch '(?, ?. ?\;)) (if (= 2 space) 0 space))
+;;                  (t (if (<= space 2) (1- space) space))))
+;;           (t space))))
+
+;; intuitive spacing (by delimiter and spacing)
+
 (defun ttt--space (lead space)
   "Return number of spaces to be inserted."
   (let* ((keys (string-to-list ttt-keys))
          (ch (and (< 0 (length lead))
                   (car (last (string-to-list lead))))))
-    (cond ((eq ttt-spacing 'french)
-           (cond ((null ch) space)
-                 ((not (memq ch keys)) space)
-                 ((memq ch '(?/ ?')) (if (= 2 space) 0 space))
-                 ((memq ch '(?, ?. ?\;)) (if (= 2 space) 0 space))
-                 (t (if (= 2 space) 0 space))))
+    (cond ((eq ttt-spacing 'french) space)
           ((eq ttt-spacing 'japanese)
            (cond ((null ch) space)
+                 ((and (<= ?0 ch) (<= ch ?9)) (if (= space 1) 0 space))
+                 ((and (<= ?A ch) (<= ch ?Z)) (if (= space 1) 0 space))
                  ((not (memq ch keys)) space)
-                 ((memq ch '(?/ ?')) (if (<= space 2) (1- space) space))
-                 ((memq ch '(?, ?. ?\;)) (if (= 2 space) 0 space))
-                 (t (if (<= space 2) (1- space) space))))
+                 ((memq ch '(?/ ?')) (if (= space 1) 0 space))
+                 ((memq ch '(?, ?. ?\;)) space)
+                 (t (if (= space 1) 0 space))))
           (t space))))
+
+;; natural spacing (by delimiter space)
+;; (defun ttt--backward (str)
+;;   "Scan backward in STR, skipping tail (i.e. non-TT-code string) and then
+;; getting body (i.e. TT-code string), decode body and return resulting
+;; list (DECODED-BODY BODY-LEN TAIL-LEN)."
+;;   (let* ((keys (string-to-list ttt-keys))
+;;          (ls (string-to-list str))
+;;          (len (length ls))
+;;          (i (1- len))
+;;          j dst k l space)
+;;     (while (and (<= 0 i) (not (memq (nth i ls) keys)))
+;;       (setq i (1- i)))
+;;     (setq j i)
+;;     (while (and (<= 0 j) (memq (nth j ls) keys))
+;;       (setq j (1- j)))
+;;     (setq k j)
+;;     (while (and (<= 0 k) (eq ?\  (nth k ls)))
+;;       (setq k (1- k)))
+;;     ;;(setq l k) (while (<= 0 l) (setq l (1- l)))
+;;     (setq l -1)
+;;     (setq space (ttt--space (substring str (1+ l) (1+ k)) (- j k)))
+;;     (setq dst (ttt--decode-string (substring str (1+ j) (1+ i))))
+;;     (list (concat (make-string space ?\ ) dst)
+;;           (- i k)
+;;           (- len i 1))))
+
+;; intuitive spacing (by delimiter and spacing)
 
 (defun ttt--backward (str)
   "Scan backward in STR, skipping tail (i.e. non-TT-code string) and then
@@ -1019,17 +1066,21 @@ list (DECODED-BODY BODY-LEN TAIL-LEN)."
     (while (and (<= 0 i) (not (memq (nth i ls) keys)))
       (setq i (1- i)))
     (setq j i)
-    (while (and (<= 0 j) (memq (nth j ls) keys))
+    (while (and (<= 0 j) (memq (nth j ls) keys)
+                (not (string-suffix-p ttt-delimiter (substring str 0 (1+ j)))))
       (setq j (1- j)))
-    (setq k j)
-    (while (and (<= 0 k) (eq ?\  (nth k ls)))
-      (setq k (1- k)))
-    ;;(setq l k) (while (<= 0 l) (setq l (1- l)))
-    (setq l -1)
-    (setq space (ttt--space (substring str (1+ l) (1+ k)) (- j k)))
     (setq dst (ttt--decode-string (substring str (1+ j) (1+ i))))
+    (setq k j)
+    (if (and (<= 0 k)
+             (string-suffix-p ttt-delimiter (substring str 0 (1+ k))))
+        (setq k (- k (length ttt-delimiter))
+              l k)
+      (setq l k)
+      (while (and (<= 0 l) (eq ?\  (nth l ls)))
+        (setq l (1- l))))
+    (setq space (ttt--space (substring str 0 (1+ l)) (- k l)))
     (list (concat (make-string space ?\ ) dst)
-          (- i k)
+          (- i l)
           (- len i 1))))
 
 ;;;###autoload
