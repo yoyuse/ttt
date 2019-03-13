@@ -1,147 +1,135 @@
 # ttt
 
-ttt is another modeless Japanese input for Emacs, or a simple and
-minimal implementation of TT-code, one of kanji direct input
-methods.
+ttt は Emacs 上で動作するモードレス日本語入力です。
 
-ttt provides an easy way of inputting English-Japanese mixed text
-without switching modes. Inputting Japanese characters is done by
-means of simple decode of TT-code, rather than complex process such
-as in kana-kanji conversion.
+入力モードの切り替えなしに、日本語と半角英数字の混在した文章を入力できます。
 
-## Requirements
+日本語の入力には、漢字直接入力の TT-code (T-code の拡張) を利用しています。
 
-* Emacs 24.3 or higher
+## 動作環境
 
-## Installation
+* Emacs 24.3 以降
 
-Put ttt.el into `load-path` and add following to .emacs or init.el:
+## インストール
+
+ttt.el を `load-path` の通ったところに置いて init.el に次のように書きます。
 
 ```emacs-lisp
 (require 'ttt)
 (define-key global-map (kbd "M-j") 'ttt-do-ttt)
 (define-key isearch-mode-map (kbd "M-j") 'ttt-isearch-do-ttt)
+```
 
-;; You may need next line if you are using tc.el
-;; (setq tcode-isearch-enable-wrapped-search nil)
+## 使用法
 
-;; Optional setting
+### 入力
+
+TT-code をタイプして <kbd>M-j</kbd> (`ttt-do-ttt`) を入力すると、日本語に変換されます。
+
+* 入力: `kryglp/tlj` <kbd>M-j</kbd>
+* 結果: `日本語入力`
+
+半角英数字と日本語の間には、スペースを入れてください。デフォルトでは、スペースは変換後も残ります (フレンチスペーシング)。
+
+* 入力: `Emacs 0rwj` <kbd>M-j</kbd>
+* 結果: `Emacs 拡張`
+
+スペースを残したくないところは、コロン `:` で区切ってください。区切りは変換後に削除されます。
+
+* 入力: `,g` <kbd>M-j</kbd> `ttt:jv` <kbd>M-j</kbd>
+* 結果: `「ttt」`
+
+`(setq ttt-spacing 'japanese)` と設定すると、変換後にスペースを残さないスタイルになります (日本語スペーシング)。
+
+* 入力: `default jg` <kbd>M-j</kbd> `french spacing hg,fhf` <kbd>M-j</kbd>
+* 結果: `defaultはfrench spacingです。`
+
+## Tips
+
+### `ttt-do-ttt` の連続実行
+
+<kbd>M-j</kbd> は、続けて実行することができます。
+
+* 入力: `ojiy(feiy) # yr,x,dle` <kbd>M-j</kbd> <kbd>M-j</kbd> <kbd>M-j</kbd>
+* 結果: `関数(引数) # コメント`
+
+### Isearch
+
+<kbd>M-j</kbd> は isearch でも利用できます。
+
+たとえば、`Emacs 拡張` を検索するには、isearch に入って `Emacs 0rwj` とタイプします。このとき、おそらく `0rwj` が見つからないとエラーになりますが、かまわず <kbd>M-j</kbd> と入力してください。すると isearch 内で変換が行われ、`Emacs 拡張` が検索されます。
+
+### 1 文字検索
+
+init.el に、
+
+``` emacs-lisp
 (define-key global-map (kbd "C-.") 'ttt-jump-to-char-forward)
 (define-key global-map (kbd "C-,") 'ttt-jump-to-char-backward)
 ```
 
-## Usage
+と書いておくと、Vim の <kbd>f</kbd> /  <kbd>F</kbd> コマンドに似た、カーソルの移動が使えるようになります。
 
-### Inputting
+たとえば、<kbd>C-.</kbd> <kbd>RET</kbd> `z/` で、カーソルが前方 (右方向) の `字` にジャンプします (<kbd>RET</kbd> は <kbd>C-m</kbd> でもかまいません)。<kbd>C-,</kbd> は同様に後方 (左方向) にジャンプします。
 
-Type TT-code and hit <kbd>M-j</kbd> (`ttt-do-ttt`),
-which scans the TT-code string before the cursor on the current line
-and decodes it to Japanese text.
+<kbd>RET</kbd> の代わりに ASCII 文字をタイプすると、その文字にジャンプします。<kbd>C-.</kbd> / <kbd>C-,</kbd> を繰り返すと、直前のジャンプを繰り返します。
 
-* Input:
-  `ysksjsks/ajgjdjfkdt8p3;gpzjshdjtighdiakslghdhgiajd` <kbd>M-j</kbd>
-* Result:
-  `わたしたちは、氷砂糖をほしいくらいもたないでも、`
+### tc.el との併用
 
-TT-code string scanning goes backward from the cursor
-to the beginning of the line,
-or until a white space or any non-TT-code character found.
+tc.el と併用する場合は、init.el に次の設定が必要かもしれません。
 
-* Input:
-  `yfkd` <kbd>M-j</kbd> ` Iha-Tovo kd,fhrjaoajrksqrjd` <kbd>M-j</kbd>
-* Result:
-  `あの Iha-Tovo のすきとおった風、`
+``` emacs-lisp
+(setq tcode-isearch-enable-wrapped-search nil)
+```
 
-Use a colon (`:`) as the *delimiter* where a white space is not desired;
-the colon is removed after decode.
+## 詳細とカスタマイズ
 
-* Input:
-  `うつくしい森で飾られた Morio:/vjd` <kbd>M-j</kbd>
-* Result:
-  `うつくしい森で飾られた Morio市、`
+### Dvorak キーボード
 
-Multiple decode at a time is allowable.
-
-* Input:
-  `(またAladdin  lyfjlk[usubmw]jajc)` <kbd>M-j</kbd> <kbd>M-j</kbd> <kbd>M-j</kbd>
-* Result:
-  `(またAladdin  洋燈[ラムプ]とり)`
-
-### Isearching
-
-Though ttt is available also in isearch, it works *not incrementally*.
-For example, searching character "草", which is encoded to "sl" in TT-code,
-would be done as below:
-
-1. Hit <kbd>C-s</kbd> to start isearch, followed by typing `sl`
-1. Emacs attempts to search `sl`, which is not found,
-   resulting in `Failing I-search: sl` error
-1. Ignore the error and proceed to hit <kbd>M-j</kbd>
-1. Then Emacs echoes `I-search: 草` and the search hits "草" finally
-
-This behavior is not the best;
-it is a trade-off for keeping ttt simple and consistent.
-
-### Single character searching
-
-As alternative searching, ttt.el provides
-<kbd>C-.</kbd> (`ttt-jump-to-char-forward`)
-and <kbd>C-,</kbd> (`ttt-jump-to-char-backward`),
-which are similar to Vim's normal mode commands <kbd>f</kbd> and <kbd>F</kbd>,
-with TT-code enhancement.
-
-Hit <kbd>C-.</kbd> followd by  <kbd>RET</kbd> or <kbd>C-m</kbd>
-then type TT-code string for a single Japanese character,
-and cursor jumps forward to the character,
-while <kbd>C-,</kbd> jumps backward.
-
-Typing a normal ASCII character
-instead of hitting <kbd>RET</kbd> or <kbd>C-m</kbd>
-just moves the cursor to the character itself.
-
-Repeat use of the commands repeats the last jump.
-
-## Customization
-
-### Using ttt with Dvorak keyboard
-
-Add following to .emacs or init.el:
+Dvorak キーボードで ttt.el を使うには、init.el に次のように書きます。
 
 ``` emacs-lisp
 (setq ttt-keys "1234567890',.pyfgcrlaoeuidhtns;qjkxbmwvz")
 ```
 
-### Changing delimiter
+### 区切り
 
-To set delimiter to `-`, add following to .emacs or init.el:
+区切りは、変換の際にコードをどこまでさかのぼるかを示す文字列で、デフォルトでは `:` です。
+
+区切りを、たとえば `-` に変更するには、init.el に次のように記述します。
 
 ``` emacs-lisp
 (setq ttt-delimiter "-")
 ```
 
-Or, to set to Space, add following:
+区切りは変換後に削除されます。区切りを残したいときは、`::` のように 1 つ余分にタイプしてください (ただし、`:` が区切りと解釈されないところでは、その必要はありません)。
 
-``` emacs-lisp
-(setq ttt-delimiter " ")
-```
+* 入力: `http:mwnsleyrkw` <kbd>M-j</kbd> `http::mwnsleyrkw` <kbd>M-j</kbd> `http: mwnsleyrkw` <kbd>M-j</kbd>
+* 結果: `httpプロトコル` `http:プロトコル` `http: プロトコル`
 
-### Rewriting decode rules
+### スペーシング
 
-Currently ttt.el does not provide a convenient way of customizing decode rules.
-Here is given only a summary how the rules are implemented.
+`ttt-spacing` は、変換の際に和英間のスペースを制御する設定項目です。
 
-ttt.el defines the decode rules with variable `ttt-table`.
-The value of `ttt-table` is an array of 40 elements,
-where each element is either `nil`, string or another array of 40 elements.
+設定できる値は `'french` (フレンチスペーシング、変換後にスペースを残す) と `'japanese` (日本語スペーシング、変換後にスペースを削除する) で、デフォルト値は `'french` です。
 
-The number 40 agrees with the length of `ttt-keys`
-which defaults to `"1234567890qwertyuiopasdfghjkl;zxcvbnm,./"`.
-`ttt-table` is constructed so that
-its *n*th element should correnspond to *n*th key of `ttt-keys`.
+日本語スペーシングでも、コンマ (`,`)・ピリオド (`.`)・セミコロン (`;`) または非コード文字の記号の後のスペースは残します。
 
-For example, decode of `kd` is defined as character `の`,
-because `k` is 27th key of `ttt-keys`, `d` is 22nd,
-and `(aref (aref ttt-table 27) 22)` is `"の"`.
-Another example: `jfkd` is defined as `氷`,
-because `j` is 26th, `f` is 23rd and
-`(aref (aref (aref (aref ttt-table 26) 23) 27) 22)` is `"氷"`.
+例:
+
+| 入力 | 'french | 'japanese | 備考 |
+|----|----|----|----|
+| `ascii ;lz/`  | `ascii 文字` | `ascii文字`  | 英小文字はコード文字 |
+| `ascii:;lz/`  | `ascii文字`  | `ascii文字`  | `:` で明示的に詰める |
+| `ascii :;lz/` | `ascii 文字` | `ascii 文字` | `:` で明示的に空ける |
+| `Tyrhsjz`     | `Tコード`    | `Tコード`    | 大文字は非コード文字 |
+| `T yrhsjz`    | `T コード`   | `Tコード`    | 大文字だが `'japanese` では詰める |
+| `1 in`        | `1 個`       | `1個`        | 数字はコード文字 |
+| `/ ;nxxlnjk`  | `/ 正規表現` | `/正規表現`  | `/` はコード文字 |
+| `# /euejs`    | `# 見出し`   | `# 見出し`   | `#` は非コード文字 |
+| `#ie/x`       | `#タグ`      | `#タグ`      | `#` は非コード文字 |
+| `1. pduale`   | `1. リスト`  | `1. リスト`  | `,` `.` `;` はコード文字だが空ける |
+
+### 変換テーブル
+
+コードから日本語への変換テーブルをカスタマイズする簡単な方法は、(現在のところ) 用意されていません。
