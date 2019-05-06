@@ -2,7 +2,7 @@
 
 ttt は Emacs 上で動作するモードレス日本語入力です。
 
-入力モードの切り替えなしに、日本語と半角英数字の混在した文章を入力できます。
+入力モードの切り替えなしに、日本語と半角英数字の混在したテキストを入力できます。
 
 日本語の入力には、漢字直接入力の TT-code (T-code の拡張) を利用しています。
 
@@ -18,6 +18,7 @@ ttt.el を `load-path` の通ったところに置いて init.el に次のよう
 (require 'ttt)
 (define-key global-map (kbd "M-j") 'ttt-do-ttt)
 (define-key isearch-mode-map (kbd "M-j") 'ttt-isearch-do-ttt)
+(define-key isearch-mode-map (kbd "M-t") 'ttt-isearch-toggle-ttt)
 ```
 
 ## 使用法
@@ -58,6 +59,12 @@ TT-code をタイプして <kbd>M-j</kbd> (`ttt-do-ttt`) を入力すると、�
 <kbd>M-j</kbd> は isearch でも利用できます。
 
 たとえば、`Emacs 拡張` を検索するには、isearch に入って `Emacs 0rwj` とタイプします。このとき、おそらく `0rwj` が見つからないとエラーになりますが、かまわず <kbd>M-j</kbd> と入力してください。すると isearch 内で変換が行われ、`Emacs 拡張` が検索されます。
+
+#### Isearch a la Migemo
+
+Emacs に [migemo](https://github.com/emacs-jp/migemo) がインストール・設定されていれば、<kbd>M-j</kbd> を入力することなく、migemo 風の isearch を行うことができます。
+
+Isearch 時に <kbd>M-t</kbd> で、通常の migemo isearch と migemo ttt isearch をトグルできます。
 
 ### 1 文字検索
 

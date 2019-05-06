@@ -25,7 +25,7 @@
 ;; methods.
 
 ;; ttt provides an easy way of inputting English-Japanese mixed text
-;; without switching modes. Inputting Japanese characters is done by
+;; without switching modes.  Inputting Japanese characters is done by
 ;; means of simple decode of TT-code, rather than complex process such
 ;; as in kana-kanji conversion.
 
@@ -34,6 +34,7 @@
 ;; (require 'ttt)
 ;; (define-key global-map (kbd "M-j") 'ttt-do-ttt)
 ;; (define-key isearch-mode-map (kbd "M-j") 'ttt-isearch-do-ttt)
+;; (define-key isearch-mode-map (kbd "M-t") 'ttt-isearch-toggle-ttt)
 ;;
 ;; ;; You may need next line if you are using tc.el
 ;; ;; (setq tcode-isearch-enable-wrapped-search nil)
@@ -50,7 +51,7 @@
 
 ;; TT-code string scanning goes backward from the cursor to the
 ;; beginning of the line, or until a white space, any non-TT-code
-;; character or `ttt-delimiter' found. `ttt-delimiter' is removed
+;; character or `ttt-delimiter' found.  `ttt-delimiter' is removed
 ;; after decode.
 
 ;;; Code:
@@ -1203,6 +1204,82 @@ If input char is RET (or C-m), then read TT-code keys as input char."
   (interactive "p")
   (ttt-jump--main count 'ttt-jump-to-char-backward 'ttt-jump-to-char-forward
                   -1 "Back to char: " "Back to char by ttt: "))
+
+;;
+;; titeto --- isearch a la migemo
+;;
+
+(defcustom ttt-isearch-enable-p t
+  "*Enable the ttt feature on isearch or nor."
+  :group 'ttt
+  :type 'boolean)
+
+(defun ttt-isearch-toggle-ttt ()
+  "Toggle ttt in migemo isearch."
+  (interactive)
+  (setq ttt-isearch-enable-p (not ttt-isearch-enable-p))
+  (isearch-message))
+
+(defun ttt--decode-expand (str)
+  "Decode TT-code string STR, get DST and STATE and return (DST . STATE)."
+  (ttt--reset)
+  (cons (mapconcat 'ttt--trans (string-to-list str) "")
+        ttt--state))
+
+;; TODO: vflattens あるいは sflattenv あるいは vecflattenconcat にリネーム?
+(defun ttt-vflats (vec)
+  "Take a nested vector VEC and return its contents as a single, flat string."
+  (cond ((and (vectorp vec) (= 0 (length vec)))
+         "")
+        ((vectorp vec)
+         (concat (ttt-vflats (aref vec 0))
+                 (ttt-vflats (subseq vec 1))))
+        (t
+         vec)))
+
+(defun ttt-generate-regexp-str (pattern &optional with-paren-p)
+  "Get regexp for pattern PATTERN.
+Returned regexp is put in parentheses if WITH-PAREN-P is non-nil."
+  (let* ((decode-expand (ttt--decode-expand pattern))
+         (dst (car decode-expand))
+         (state (cdr decode-expand))
+         (state (if (eq state ttt-table) [] state))
+         ;; XXX: ttt-table の末端の素要は空文字列か長さ 1 の文字列で、
+         ;; ^ や - や [ ] といった文字はないと仮定している
+         (char-class (ttt-vflats state))
+         (char-class (if (string-empty-p char-class) ""
+                       (concat "[" char-class "]")))
+         (re (concat (regexp-quote dst) char-class))
+         (re (concat (regexp-quote pattern) "\\|" re))
+         (re (if with-paren-p (concat "\\(" re "\\)") re)))
+    re))
+
+(defun ttt-get-pattern (pattern)
+  "Get regexp for pattern PATTERN."
+  (let* ((segments (split-string pattern " ")))
+    (if (<= (length segments) 1)
+        (ttt-generate-regexp-str pattern nil)
+      (let ((re-str1 (ttt-generate-regexp-str pattern t))
+            (re-str2 (mapconcat (lambda (p) (ttt-generate-regexp-str p t))
+                                segments " *")))
+        (concat re-str1 "\\|" re-str2)
+        ))))
+
+(defadvice isearch-message-prefix (after ttt-status activate)
+  "Adviced by ttt."
+  (let ((ret ad-return-value)
+        (str "[ttt]"))
+    (when (and (boundp 'migemo-isearch-enable-p)
+               migemo-isearch-enable-p
+               ttt-isearch-enable-p)
+      (setq ad-return-value (concat str " " ret)))))
+
+;; advice で migemo-get-pattern を書き換える
+(defadvice migemo-get-pattern (around ttt-get-pattern-ad activate)
+  "Adviced by ttt."
+  (if (and ttt-isearch-enable-p)
+      (setq ad-return-value (ttt-get-pattern (ad-get-arg 0)))
+    ad-do-it))
 
 (provide 'ttt)
 
