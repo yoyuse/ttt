@@ -30,7 +30,7 @@ TT-code をタイプして <kbd>M-j</kbd> (`ttt-do-ttt`) を入力すると、�
 * 入力: `kryglp/tlj` <kbd>M-j</kbd>
 * 結果: `日本語入力`
 
-半角英数字と日本語の間には、スペースを入れてください。デフォルトでは、スペースは変換後も残ります (フレンチスペーシング)。
+半角英数字と日本語の間には、スペースを入れてください。デフォルトでは、スペースは変換後も残ります。
 
 * 入力: `Emacs 0rwj` <kbd>M-j</kbd>
 * 結果: `Emacs 拡張`
@@ -40,10 +40,10 @@ TT-code をタイプして <kbd>M-j</kbd> (`ttt-do-ttt`) を入力すると、�
 * 入力: `,g` <kbd>M-j</kbd> `ttt:jv` <kbd>M-j</kbd>
 * 結果: `「ttt」`
 
-`(setq ttt-spacing 'japanese)` と設定すると、変換後にスペースを残さないスタイルになります (日本語スペーシング)。
+あるいは、`(setq ttt-remove-space t)` と設定すると、変換後にスペースを残さないスタイルになります。
 
-* 入力: `default jg` <kbd>M-j</kbd> `french spacing hg,fhf` <kbd>M-j</kbd>
-* 結果: `defaultはfrench spacingです。`
+* 入力: `default jg` <kbd>M-j</kbd> `nil hg,fhf` <kbd>M-j</kbd>
+* 結果: `defaultはnilです。`
 
 ## Tips
 
@@ -62,9 +62,11 @@ TT-code をタイプして <kbd>M-j</kbd> (`ttt-do-ttt`) を入力すると、�
 
 #### Isearch a la Migemo
 
-Emacs に [migemo](https://github.com/emacs-jp/migemo) がインストール・設定されていれば、<kbd>M-j</kbd> を入力することなく、migemo 風の isearch を行うことができます。
+Emacs に [migemo.el](https://github.com/emacs-jp/migemo) がインストール・設定されていれば、<kbd>M-j</kbd> を入力することなく、migemo 風の isearch を行えます。
 
-Isearch 時に <kbd>M-t</kbd> で、通常の migemo isearch と migemo ttt isearch をトグルできます。
+Isearch モードで <kbd>M-t</kbd> (`ttt-isearch-toggle-ttt`) により、通常の migemo isearch と migemo ttt isearch をトグルできます。
+
+検索文字列を入力する際は、日本語と半角英数字の間にスペースを入れてください。たとえば `emacs 0rwj` と入力すれば、`Emacs拡張` や `Emacs 拡張` がヒットします。
 
 ### 1 文字検索
 
@@ -111,26 +113,31 @@ Dvorak キーボードで ttt.el を使うには、init.el に次のように書
 
 区切りは変換後に削除されます。区切りを残したいときは、`::` のように 1 つ余分にタイプしてください (ただし、`:` が区切りと解釈されないところでは、その必要はありません)。
 
-* 入力: `http:mwnsleyrkw` <kbd>M-j</kbd> `http::mwnsleyrkw` <kbd>M-j</kbd> `http: mwnsleyrkw` <kbd>M-j</kbd>
-* 結果: `httpプロトコル` `http:プロトコル` `http: プロトコル`
+例:
 
-### スペーシング
+| 入力 | 結果|
+|----|----|
+| `http:mwnsleyrkw`  | `httpプロトコル`   |
+| `http::mwnsleyrkw` | `http:プロトコル`  |
+| `http: mwnsleyrkw` | `http: プロトコル` |
 
-`ttt-spacing` は、変換の際に和英間のスペースを制御する設定項目です。
+### 和英間のスペース
 
-設定できる値は `'french` (フレンチスペーシング、変換後にスペースを残す) と `'japanese` (日本語スペーシング、変換後にスペースを削除する) で、デフォルト値は `'french` です。
+`ttt-remove-space` は、日本語と半角英数字の間のスペースを制御する設定項目です。
 
-日本語スペーシングでも、コンマ (`,`)・ピリオド (`.`)・セミコロン (`;`) または非コード文字の記号の後のスペースは残します。
+設定できる値は `nil` (変換後にスペースを残す) と `t` (変換後にスペースを削除する) で、デフォルト値は `nil` です。
+
+`ttt-remove-space` が `t` の場合でも、コンマ (`,`)・ピリオド (`.`)・セミコロン (`;`) または非コード文字の記号の後のスペースは残します。
 
 例:
 
-| 入力 | 'french | 'japanese | 備考 |
+| 入力 | `nil` | `t` | 備考 |
 |----|----|----|----|
 | `ascii ;lz/`  | `ascii 文字` | `ascii文字`  | 英小文字はコード文字 |
 | `ascii:;lz/`  | `ascii文字`  | `ascii文字`  | `:` で明示的に詰める |
 | `ascii :;lz/` | `ascii 文字` | `ascii 文字` | `:` で明示的に空ける |
 | `Tyrhsjz`     | `Tコード`    | `Tコード`    | 大文字は非コード文字 |
-| `T yrhsjz`    | `T コード`   | `Tコード`    | 大文字だが `'japanese` では詰める |
+| `T yrhsjz`    | `T コード`   | `Tコード`    | 大文字だが `t` では詰める |
 | `1 in`        | `1 個`       | `1個`        | 数字はコード文字 |
 | `/ ;nxxlnjk`  | `/ 正規表現` | `/正規表現`  | `/` はコード文字 |
 | `# /euejs`    | `# 見出し`   | `# 見出し`   | `#` は非コード文字 |

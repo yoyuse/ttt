@@ -74,11 +74,16 @@
   :type 'string
   :group 'ttt)
 
-(defcustom ttt-spacing 'french
-  "Spacing between TT-code and non-TT-code text.
-- 'french    Space is not removed after decode
-- 'japanese  Space is removed after decode"
-  :type 'symbol
+(defcustom ttt-remove-space nil
+  "*If non-nil, remove space between alphanumeric string and Japanese string."
+  :type 'boolean
+  :group 'ttt)
+
+(defcustom ttt-remove-space-regexp
+  ;; "[a-zA-Z0-9/']$"
+  "[a-zA-Z0-9/]$"
+  "*Space after string matching the regexp is removed when `ttt-remove-space'."
+  :type 'regexp
   :group 'ttt)
 
 (defvar ttt-table
@@ -934,131 +939,11 @@
   (ttt--reset)
   (mapconcat 'ttt--trans (string-to-list str) ""))
 
-;; (defun ttt--decode-substring (str)
-;;   "Scan backward in STR, skipping tail (i.e. non-TT-code string) and then
-;; getting body (i.e. TT-code string), decode body and return resulting
-;; list (DECODED-BODY BODY-LEN TAIL-LEN)."
-;;   (let* ((keys (string-to-list ttt-keys))
-;;          (ls (string-to-list str))
-;;          (len (length ls))
-;;          (i (1- len))
-;;          j dst)
-;;     (while (and (<= 0 i) (not (memq (nth i ls) keys)))
-;;       (setq i (1- i)))
-;;     (setq j i)
-;;     (while (and (<= 0 j) (memq (nth j ls) keys))
-;;       (setq j (1- j)))
-;;     (setq dst (ttt--decode-string (substring str (1+ j) (1+ i))))
-;;     (if (and (<= 0 j)
-;;              (string-suffix-p ttt-delimiter (substring str 0 (1+ j))))
-;;         (setq j (- j (length ttt-delimiter))))
-;;     (list dst (- i j) (- len i 1))))
-
-;; (defun ttt--backward (str)
-;;   "Scan backward in STR, skipping tail (i.e. non-TT-code string) and then
-;; getting body (i.e. TT-code string), decode body and return resulting
-;; list (DECODED-BODY BODY-LEN TAIL-LEN TRIM-LEN)."
-;;   (let* ((keys (string-to-list ttt-keys))
-;;          (ls (string-to-list str))
-;;          (len (length ls))
-;;          (i (1- len))
-;;          j dst
-;;          k (trim 0))
-;;     (while (and (<= 0 i) (not (memq (nth i ls) keys)))
-;;       (setq i (1- i)))
-;;     (setq j i)
-;;     (while (and (<= 0 j) (memq (nth j ls) keys))
-;;       (setq j (1- j)))
-;;     (setq k j)
-;;     (while (and (<= 0 k) (not (memq (nth k ls) keys)))
-;;       (setq k (1- k)))
-;;     (setq dst (ttt--decode-string (substring str (1+ j) (1+ i))))
-;;     (cond ((eq ttt-spacing 'french)
-;;            (when (string-equal " " (substring str (1+ k) (1+ j)))
-;;              (setq j (1- j))
-;;              (if (string-suffix-p " " (substring str (1+ i)))
-;;                  (setq trim 1)
-;;                (setq dst (concat " " dst)))))
-;;           ((eq ttt-spacing 'japanese)
-;;            (when (string-equal " " (substring str (1+ k) (1+ j)))
-;;              (setq j (1- j))
-;;              (when (string-suffix-p " " (substring str (1+ i)))
-;;                (setq trim 1)
-;;                (setq dst (concat " " dst)))))
-;;           (t nil))
-;;     (list dst (- i j) (- len i 1 trim) trim)))
-
-;; natural spacing (by delimiter space)
-;;
-;; (defun ttt--space (lead space)
-;;   "Return number of spaces to be inserted."
-;;   (let* ((keys (string-to-list ttt-keys))
-;;          (ch (and (< 0 (length lead))
-;;                   (car (last (string-to-list lead))))))
-;;     (cond ((eq ttt-spacing 'french)
-;;            (cond ((null ch) space)
-;;                  ((not (memq ch keys)) space)
-;;                  ((memq ch '(?/ ?')) (if (= 2 space) 0 space))
-;;                  ((memq ch '(?, ?. ?\;)) (if (= 2 space) 0 space))
-;;                  (t (if (= 2 space) 0 space))))
-;;           ((eq ttt-spacing 'japanese)
-;;            (cond ((null ch) space)
-;;                  ((not (memq ch keys)) space)
-;;                  ((memq ch '(?/ ?')) (if (<= space 2) (1- space) space))
-;;                  ((memq ch '(?, ?. ?\;)) (if (= 2 space) 0 space))
-;;                  (t (if (<= space 2) (1- space) space))))
-;;           (t space))))
-
-;; intuitive spacing (by delimiter and spacing)
-
-(defun ttt--space (lead space)
-  "Return number of spaces to be inserted."
-  (let* ((keys (string-to-list ttt-keys))
-         (ch (and (< 0 (length lead))
-                  (car (last (string-to-list lead))))))
-    (cond ((eq ttt-spacing 'french) space)
-          ((eq ttt-spacing 'japanese)
-           (cond ((null ch) space)
-                 ((and (<= ?0 ch) (<= ch ?9)) (if (= space 1) 0 space))
-                 ((and (<= ?A ch) (<= ch ?Z)) (if (= space 1) 0 space))
-                 ((not (memq ch keys)) space)
-                 ((memq ch '(?/ ?')) (if (= space 1) 0 space))
-                 ((memq ch '(?, ?. ?\;)) space)
-                 (t (if (= space 1) 0 space))))
-          (t space))))
-
-;; natural spacing (by delimiter space)
-;; (defun ttt--backward (str)
-;;   "Scan backward in STR, skipping tail (i.e. non-TT-code string) and then
-;; getting body (i.e. TT-code string), decode body and return resulting
-;; list (DECODED-BODY BODY-LEN TAIL-LEN)."
-;;   (let* ((keys (string-to-list ttt-keys))
-;;          (ls (string-to-list str))
-;;          (len (length ls))
-;;          (i (1- len))
-;;          j dst k l space)
-;;     (while (and (<= 0 i) (not (memq (nth i ls) keys)))
-;;       (setq i (1- i)))
-;;     (setq j i)
-;;     (while (and (<= 0 j) (memq (nth j ls) keys))
-;;       (setq j (1- j)))
-;;     (setq k j)
-;;     (while (and (<= 0 k) (eq ?\  (nth k ls)))
-;;       (setq k (1- k)))
-;;     ;;(setq l k) (while (<= 0 l) (setq l (1- l)))
-;;     (setq l -1)
-;;     (setq space (ttt--space (substring str (1+ l) (1+ k)) (- j k)))
-;;     (setq dst (ttt--decode-string (substring str (1+ j) (1+ i))))
-;;     (list (concat (make-string space ?\ ) dst)
-;;           (- i k)
-;;           (- len i 1))))
-
-;; intuitive spacing (by delimiter and spacing)
-
 (defun ttt--backward (str)
-  "Scan backward in STR, skipping tail (i.e. non-TT-code string) and then
-getting body (i.e. TT-code string), decode body and return resulting
-list (DECODED-BODY BODY-LEN TAIL-LEN)."
+  "Scan TT-code backward in STR and decode it.
+Scanning is done with skipping tail (i.e. non-TT-code string) and then
+getting body (i.e. TT-code string).
+Return resulting list (DECODED-BODY BODY-LEN TAIL-LEN)."
   (let* ((keys (string-to-list ttt-keys))
          (ls (string-to-list str))
          (len (length ls))
@@ -1077,19 +962,19 @@ list (DECODED-BODY BODY-LEN TAIL-LEN)."
         (setq k (- k (length ttt-delimiter))
               l k)
       (setq l k)
-      (while (and (<= 0 l) (eq ?\  (nth l ls)))
-        (setq l (1- l))))
-    (setq space (ttt--space (substring str 0 (1+ l)) (- k l)))
-    (list (concat (make-string space ?\ ) dst)
-          (- i l)
-          (- len i 1))))
+      (if (and ttt-remove-space
+               (<= 0 l)
+               (eq ?\  (nth l ls))
+               (string-match-p ttt-remove-space-regexp (substring str 0 l)))
+          (setq l (1- l))))
+    (list dst (- i l) (- len i 1))))
 
 ;;;###autoload
 (defun ttt-do-ttt ()
-  "Do ttt."
+  "Do ttt.
+Return beginning and end position of decoded string as (BEG . END)."
   (interactive)
   (let* ((src (buffer-substring (point-at-bol) (point)))
-         ;;(len (length src))
          (ls (ttt--backward src))
          (dst (car ls))
          (body-len (car (cdr ls)))
@@ -1099,7 +984,8 @@ list (DECODED-BODY BODY-LEN TAIL-LEN)."
     (save-excursion
       (goto-char beg)
       (insert dst)
-      (delete-region (point) (+ (point) body-len)))))
+      (delete-region (point) (+ (point) body-len))
+      (cons beg (+ beg (length dst))))))
 
 ;;;###autoload
 (defun ttt-isearch-do-ttt ()
@@ -1132,7 +1018,8 @@ list (DECODED-BODY BODY-LEN TAIL-LEN)."
 ;;
 
 (defun ttt--read-char (prompt)
-  "Read TT-code keys until they make a valid code, and return decoded character."
+  "Read TT-code keys with PROMPT until they make a valid code.
+Return decoded character."
   (let (c ch)
     (ttt--reset)
     (while (string-equal "" (setq ch (ttt--trans (setq c (read-char prompt)))))
@@ -1143,6 +1030,7 @@ list (DECODED-BODY BODY-LEN TAIL-LEN)."
 (defvar ttt-jump--sign 1 "Search direction; 1 for forward, -1 for backward.")
 
 (defun ttt-jump--sub (char count)
+  "Jump to COUNTth occurrence of char CHAR."
   (let ((case-fold-search nil)
         (forward-move nil))
     (cond
@@ -1159,12 +1047,18 @@ list (DECODED-BODY BODY-LEN TAIL-LEN)."
       (setq ttt-jump--char char)))))
 
 (defun ttt-jump--repeat (count)
+  "Repeat last jump to `ttt-jump--char' COUNT times."
   (cond
    ((eq nil ttt-jump--char) (message "No jump yet"))
    (t (ttt-jump--sub ttt-jump--char count)
       (message "Repeating jump to char %c" ttt-jump--char))))
 
 (defun ttt-jump--main (count jump jump-reverse sign prompt prompt-ttt)
+  "Jump to COUNTth occurrence of input char.
+Do jump by `ttt-jump-repeat' if `last-command' is JUMP or JUMP-REVERSE,
+or by `ttt-jump--sub' after reading char with PROMPT or PROMPT-TTT,
+Search is done in same direction if SIGN is positive,
+or in reverse direction if SIGN is negative."
   (let (char point)
     (cond ((eq last-command jump)
            (ttt-jump--repeat (* ttt-jump--sign count)))
@@ -1178,7 +1072,8 @@ list (DECODED-BODY BODY-LEN TAIL-LEN)."
            (if (eq char ?\C-m)
                (setq char (string-to-char
                            (ttt--read-char
-                            (propertize prompt-ttt 'face 'minibuffer-prompt)))))
+                            (propertize prompt-ttt 'face
+                                        'minibuffer-prompt)))))
            (if (not (characterp char))  ; XXX: command call key as input char
                (ttt-jump--repeat (* ttt-jump--sign count))
              (ttt-jump--sub char (* ttt-jump--sign count)))
@@ -1189,7 +1084,7 @@ list (DECODED-BODY BODY-LEN TAIL-LEN)."
 
 ;;;###autoload
 (defun ttt-jump-to-char-forward (&optional count)
-  "Jump forward to COUNT-th occurrence of input char.
+  "Jump forward to COUNTth occurrence of input char.
 Repeat use of this command repeats last jump.
 If input char is RET (or C-m), then read TT-code keys as input char."
   (interactive "p")
@@ -1198,7 +1093,7 @@ If input char is RET (or C-m), then read TT-code keys as input char."
 
 ;;;###autoload
 (defun ttt-jump-to-char-backward (&optional count)
-  "Jump backward to COUNT-th occurrence of input char.
+  "Jump backward to COUNTth occurrence of input char.
 Repeat use of this command repeats last jump.
 If input char is RET (or C-m), then read TT-code keys as input char."
   (interactive "p")
@@ -1210,14 +1105,23 @@ If input char is RET (or C-m), then read TT-code keys as input char."
 ;;
 
 (defcustom ttt-isearch-enable-p t
-  "*Enable the ttt feature on isearch or nor."
+  "*Enable the ttt feature on isearch or not."
   :group 'ttt
   :type 'boolean)
 
+;;;###autoload
 (defun ttt-isearch-toggle-ttt ()
   "Toggle ttt in migemo isearch."
   (interactive)
-  (setq ttt-isearch-enable-p (not ttt-isearch-enable-p))
+  (unless (or isearch-regexp)
+    (discard-input)
+    (setq ttt-isearch-enable-p (not ttt-isearch-enable-p)))
+  (when (fboundp 'isearch-lazy-highlight-new-loop)
+      (let ((isearch-lazy-highlight-last-string nil))
+        (condition-case nil
+            (isearch-lazy-highlight-new-loop)
+          (error
+           (isearch-lazy-highlight-new-loop nil nil)))))
   (isearch-message))
 
 (defun ttt--decode-expand (str)
@@ -1226,18 +1130,17 @@ If input char is RET (or C-m), then read TT-code keys as input char."
   (cons (mapconcat 'ttt--trans (string-to-list str) "")
         ttt--state))
 
-;; TODO: vflattens あるいは sflattenv あるいは vecflattenconcat にリネーム?
-(defun ttt-vflats (vec)
+(defun ttt--vector-flatten-concat (vec)
   "Take a nested vector VEC and return its contents as a single, flat string."
   (cond ((and (vectorp vec) (= 0 (length vec)))
          "")
         ((vectorp vec)
-         (concat (ttt-vflats (aref vec 0))
-                 (ttt-vflats (subseq vec 1))))
+         (concat (ttt--vector-flatten-concat (aref vec 0))
+                 (ttt--vector-flatten-concat (substring vec 1))))
         (t
          vec)))
 
-(defun ttt-generate-regexp-str (pattern &optional with-paren-p)
+(defun ttt--generate-regexp-str (pattern &optional with-paren-p)
   "Get regexp for pattern PATTERN.
 Returned regexp is put in parentheses if WITH-PAREN-P is non-nil."
   (let* ((decode-expand (ttt--decode-expand pattern))
@@ -1246,21 +1149,21 @@ Returned regexp is put in parentheses if WITH-PAREN-P is non-nil."
          (state (if (eq state ttt-table) [] state))
          ;; XXX: ttt-table の末端の素要は空文字列か長さ 1 の文字列で、
          ;; ^ や - や [ ] といった文字はないと仮定している
-         (char-class (ttt-vflats state))
-         (char-class (if (string-empty-p char-class) ""
+         (char-class (ttt--vector-flatten-concat state))
+         (char-class (if (string= "" char-class) ""
                        (concat "[" char-class "]")))
          (re (concat (regexp-quote dst) char-class))
          (re (concat (regexp-quote pattern) "\\|" re))
          (re (if with-paren-p (concat "\\(" re "\\)") re)))
     re))
 
-(defun ttt-get-pattern (pattern)
+(defun ttt--get-pattern (pattern)
   "Get regexp for pattern PATTERN."
   (let* ((segments (split-string pattern " ")))
     (if (<= (length segments) 1)
-        (ttt-generate-regexp-str pattern nil)
-      (let ((re-str1 (ttt-generate-regexp-str pattern t))
-            (re-str2 (mapconcat (lambda (p) (ttt-generate-regexp-str p t))
+        (ttt--generate-regexp-str pattern nil)
+      (let ((re-str1 (ttt--generate-regexp-str pattern t))
+            (re-str2 (mapconcat (lambda (p) (ttt--generate-regexp-str p t))
                                 segments " *")))
         (concat re-str1 "\\|" re-str2)
         ))))
@@ -1271,14 +1174,15 @@ Returned regexp is put in parentheses if WITH-PAREN-P is non-nil."
         (str "[ttt]"))
     (when (and (boundp 'migemo-isearch-enable-p)
                migemo-isearch-enable-p
-               ttt-isearch-enable-p)
+               ttt-isearch-enable-p
+               (not (or isearch-regexp)))
       (setq ad-return-value (concat str " " ret)))))
 
 ;; advice で migemo-get-pattern を書き換える
-(defadvice migemo-get-pattern (around ttt-get-pattern-ad activate)
+(defadvice migemo-get-pattern (around ttt--get-pattern-ad activate)
   "Adviced by ttt."
   (if (and ttt-isearch-enable-p)
-      (setq ad-return-value (ttt-get-pattern (ad-get-arg 0)))
+      (setq ad-return-value (ttt--get-pattern (ad-get-arg 0)))
     ad-do-it))
 
 (provide 'ttt)

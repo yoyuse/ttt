@@ -152,7 +152,7 @@
                               "# /euejs" M-j RET
                               "#ie/x" M-j RET
                               "1. pduale" M-j RET))
-        (ttt-spacing-expected-french
+        (ttt-spacing-expected-remove-space-nil
          (concat "httpプロトコル" "\n"
                  "http:プロトコル" "\n"
                  "http: プロトコル" "\n"
@@ -166,7 +166,7 @@
                  "# 見出し" "\n"
                  "#タグ" "\n"
                  "1. リスト" "\n"))
-        (ttt-spacing-expected-japanese
+        (ttt-spacing-expected-remove-space-t
          (concat "httpプロトコル" "\n"
                  "http:プロトコル" "\n"
                  "http: プロトコル" "\n"
@@ -181,11 +181,11 @@
                  "#タグ" "\n"
                  "1. リスト" "\n"))
         )
-    (let ((ttt-spacing 'french))
-      (should (equal ttt-spacing-expected-french
+    (let ((ttt-remove-space nil))
+      (should (equal ttt-spacing-expected-remove-space-nil
                      (simulate-ttt-with-temp-buffer ttt-spacing-inputs))))
-    (let ((ttt-spacing 'japanese))
-      (should (equal ttt-spacing-expected-japanese
+    (let ((ttt-remove-space t))
+      (should (equal ttt-spacing-expected-remove-space-t
                      (simulate-ttt-with-temp-buffer ttt-spacing-inputs))))
     ))
 
