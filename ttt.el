@@ -910,6 +910,9 @@
 (defvar ttt--state nil "State of TT-code decoder.")
 (make-variable-buffer-local 'ttt--state)
 
+(defvar ttt--remain nil "Remain of TT-code decode.")
+(make-variable-buffer-local 'ttt--remain)
+
 ;;
 ;; Functions
 ;;
@@ -921,16 +924,21 @@
 
 (defun ttt--reset()
   "Reset state of TT-code decoder."
+  (setq ttt--remain "")
   (setq ttt--state ttt-table))
 
-(defun ttt--trans (c)
-  "Take character C as input to TT-code decoder, get output and return it."
+(defun ttt--trans (c &optional prefer-remain)
+  "Take character C as input to TT-code decoder, get output and return it.
+If PREFER-REMAIN is non-nil and result is empty string, output remain instead."
   (let* ((ch (string c))
          (k (ttt--index ttt-keys ch)))
     (if (or (null k) (not (arrayp ttt--state)) (<= (length ttt--state) k))
-        (progn (ttt--reset) ch)
+        (prog1 (concat ttt--remain ch) (ttt--reset))
+      (setq ttt--remain (concat ttt--remain ch))
       (setq ttt--state (aref ttt--state k))
-      (cond ((stringp ttt--state) (prog1 ttt--state (ttt--reset)))
+      (cond ((and prefer-remain (stringp ttt--state) (string= ttt--state ""))
+             (prog1 ttt--remain (ttt--reset)))
+            ((stringp ttt--state) (prog1 ttt--state (ttt--reset)))
             ((vectorp ttt--state) "")
             (t (progn (ttt--reset) ""))))))
 
@@ -948,7 +956,7 @@ Return resulting list (DECODED-BODY BODY-LEN TAIL-LEN)."
          (ls (string-to-list str))
          (len (length ls))
          (i (1- len))
-         j dst k l space)
+         j dst k l)
     (while (and (<= 0 i) (not (memq (nth i ls) keys)))
       (setq i (1- i)))
     (setq j i)
@@ -1127,7 +1135,7 @@ If input char is RET (or C-m), then read TT-code keys as input char."
 (defun ttt--decode-expand (str)
   "Decode TT-code string STR, get DST and STATE and return (DST . STATE)."
   (ttt--reset)
-  (cons (mapconcat 'ttt--trans (string-to-list str) "")
+  (cons (mapconcat (lambda (c) (ttt--trans c t)) (string-to-list str) "")
         ttt--state))
 
 (defun ttt--vector-flatten-concat (vec)
