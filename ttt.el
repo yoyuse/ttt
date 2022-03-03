@@ -1155,7 +1155,7 @@ Returned regexp is put in parentheses if WITH-PAREN-P is non-nil."
          (dst (car decode-expand))
          (state (cdr decode-expand))
          (state (if (eq state ttt-table) [] state))
-         ;; XXX: ttt-table の末端の素要は空文字列か長さ 1 の文字列で、
+         ;; XXX: ttt-table の末端の要素は空文字列か長さ 1 の文字列で、
          ;; ^ や - や [ ] といった文字はないと仮定している
          (char-class (ttt--vector-flatten-concat state))
          (char-class (if (string= "" char-class) ""
