@@ -77,7 +77,7 @@ init.el に、
 (define-key global-map (kbd "C-,") 'ttt-jump-to-char-backward)
 ```
 
-と書いておくと、Vim の <kbd>f</kbd> /  <kbd>F</kbd> コマンドに似た、カーソルの移動が使えるようになります。
+と書いておくと、Vim の <kbd>f</kbd> / <kbd>F</kbd> コマンドに似た、カーソルの移動が使えるようになります。
 
 たとえば、<kbd>C-.</kbd> <kbd>RET</kbd> `z/` で、カーソルが前方 (右方向) の `字` にジャンプします (<kbd>RET</kbd> は <kbd>C-m</kbd> でもかまいません)。<kbd>C-,</kbd> は同様に後方 (左方向) にジャンプします。
 
@@ -90,6 +90,50 @@ tc.el と併用する場合は、init.el に次の設定が必要かもしれま
 ``` emacs-lisp
 (setq tcode-isearch-enable-wrapped-search nil)
 ```
+
+### kkc を利用したかな漢字変換
+
+ttt の補助入力として kkc (Kana Kanji converter) を利用することができます。
+kkc は Emacs に付属するかな漢字変換です。
+init.el に次のように書いて <kbd>M-j</kbd> を `ttt-do-ttt-with-kkc` に割り当てます。
+
+``` emacs-lisp
+(define-key global-map (kbd "M-j") 'ttt-do-ttt-with-kkc)
+```
+
+TT-code でひらがなをタイプして <kbd>C-u M-j</kbd> を入力すると kkc によりかな漢字変換が行われ、エコーエリアに変換した文字のコードヘルプが表示されます。
+
+* 入力: `jendux` <kbd>C-u M-j</kbd>
+* 結果: `漢字`
+* エコーエリア: `漢<l4>字<z/>`
+
+交ぜ書き変換 (読みに漢字を含む変換) はできません。
+
+kkc の変換中は、次のようなキー操作が可能です。
+
+| key            | binding                                  |
+|----------------|------------------------------------------|
+| `C-n`, `SPC`   | `kkc-next`                               |
+| `C-p`          | `kkc-prev`                               |
+| `l`            | `kkc-show-conversion-list-or-next-group` |
+| `L`            | `kkc-show-conversion-list-or-prev-group` |
+| `0` .. `9`     | `kkc-select-from-list`                   |
+| `H`            | `kkc-hiragana`                           |
+| `K`            | `kkc-katakana`                           |
+| `C-o`          | `kkc-longer`                             |
+| `TAB`          | `kkc-shorter`                            |
+| `C-f`          | `kkc-next-phrase`                        |
+| `C-c`, `DEL`   | `kkc-cancel`                             |
+| `RET`          | `kkc-terminate`                          |
+| `C-@`, `C-SPC` | `kkc-first-char-only`                    |
+| `C-h`          | `kkc-help`                               |
+| `I`            | `kkc-shorter-conversion`                 |
+| `O`            | `kkc-longer-phrase`                      |
+
+ひらがなを対象に文字数を指定して変換することもできます。
+
+* 入力: `漢字にへんかん` <kbd>C-u 4 M-j</kbd>
+* 結果: `漢字に変換`
 
 ## 詳細とカスタマイズ
 

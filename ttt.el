@@ -1,6 +1,6 @@
 ;;; ttt.el --- Tiny TT-code Translation   -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2004-2019  YUSE Yosihiro
+;; Copyright (C) 2004-2022  YUSE Yosihiro
 
 ;; Author: YUSE Yosihiro <yoyuse@gmail.com>
 ;; Keywords: input method, japanese
@@ -55,6 +55,8 @@
 ;; after decode.
 
 ;;; Code:
+
+;;; ttt
 
 ;;
 ;; Customization variables
@@ -977,23 +979,37 @@ Return resulting list (DECODED-BODY BODY-LEN TAIL-LEN)."
           (setq l (1- l))))
     (list dst (- i l) (- len i 1))))
 
+(defun ttt--region (beg end)
+  "Decode region between BEG and END.
+Return beginning and end position of decoded string as (BEG . END)."
+  (let* ((src (buffer-substring beg end))
+         (dst (ttt--decode-string src)))
+    (goto-char beg)
+    (delete-region beg end)
+    (insert dst)
+    (cons beg (+ beg (length dst)))))
+
 ;;;###autoload
 (defun ttt-do-ttt ()
   "Do ttt.
 Return beginning and end position of decoded string as (BEG . END)."
   (interactive)
-  (let* ((src (buffer-substring (point-at-bol) (point)))
-         (ls (ttt--backward src))
-         (dst (car ls))
-         (body-len (car (cdr ls)))
-         (tail-len (car (cdr (cdr ls))))
-         (end (- (point) tail-len))
-         (beg (- end body-len)))
-    (save-excursion
-      (goto-char beg)
-      (insert dst)
-      (delete-region (point) (+ (point) body-len))
-      (cons beg (+ beg (length dst))))))
+  (if (region-active-p)
+      (ttt--region (region-beginning) (region-end))
+    (let* ((src (buffer-substring (point-at-bol) (point)))
+           (ls (ttt--backward src))
+           (dst (car ls))
+           (body-len (car (cdr ls)))
+           (tail-len (car (cdr (cdr ls))))
+           (end (- (point) tail-len))
+           (beg (- end body-len)))
+      (save-excursion
+        (goto-char beg)
+        (insert dst)
+        (delete-region (point) (+ (point) body-len))
+        (cons beg (+ beg (length dst)))))))
+
+;;; isearch
 
 ;;;###autoload
 (defun ttt-isearch-do-ttt ()
@@ -1020,6 +1036,8 @@ Return beginning and end position of decoded string as (BEG . END)."
       (isearch-process-search-string (substring src i (1+ i))
                                      (substring src i (1+ i)))
       (setq i (1+ i)))))
+
+;;; jump
 
 ;;
 ;; ttt-jump-to-char-forward, ttt-jump-to-char-backward
@@ -1108,6 +1126,8 @@ If input char is RET (or C-m), then read TT-code keys as input char."
   (ttt-jump--main count 'ttt-jump-to-char-backward 'ttt-jump-to-char-forward
                   -1 "Back to char: " "Back to char by ttt: "))
 
+;;; titeto
+
 ;;
 ;; titeto --- isearch a la migemo
 ;;
@@ -1193,6 +1213,112 @@ Returned regexp is put in parentheses if WITH-PAREN-P is non-nil."
       (setq ad-return-value (ttt--get-pattern (ad-get-arg 0)))
     ad-do-it))
 
-(provide 'ttt)
+;;; ttt-rev
 
+(defvar ttt--rev-table nil "TT-code reverse table.")
+(defvar ttt--obarray (make-vector 4999 nil) "Object array.") ; 4999: prime
+
+(defun ttt--rev-make-table (table &optional prefix)
+  "Make reverse table.
+PREFIX is prefix of code, TABLE is subtable."
+  (let* ((chars ttt-keys)
+         (k 0)
+         (prefix (or prefix "")))
+    (while (< k (length chars))
+      (let* ((ch (aref (string-to-vector ttt-keys) k))
+             (tbl (aref table k))
+             (code (concat prefix (char-to-string ch))))
+        (cond ((vectorp tbl)
+               (ttt--rev-make-table tbl code))
+              ((stringp tbl)
+               (let* ((codes (plist-get ttt--rev-table
+                                        (intern-soft tbl ttt--obarray)))
+                      (codes (cons code codes)))
+                 (setq ttt--rev-table
+                       (plist-put ttt--rev-table (intern tbl ttt--obarray)
+                                  codes))))
+              (t nil)))
+      (setq k (1+ k))))
+  ttt--rev-table)
+
+;; Make reverse table
+(progn
+  (message "Making reverse search table...")
+  ;; (setq ttt--rev-table nil)
+  ;; (setq ttt--obarray (make-vector 4999 nil))
+  (ttt--rev-make-table ttt-table "")
+  (message "Making reverse search table... done"))
+
+(defun ttt--rev (char)
+  "Look up one char string CHAR in reverse table."
+  (plist-get ttt--rev-table
+             (intern-soft char ttt--obarray)))
+
+;;; ttt-code-help
+
+(defface ttt-paren-face '((t (:inherit font-lock-comment-face)))
+  "Face for paren of code help.")
+
+(defface ttt-code-face '((t (:inherit font-lock-string-face)))
+  "Face for code of code help.")
+
+(defun ttt--make-code-help (code)
+  "Make code help from CODE."
+  (concat (propertize "<" 'face 'ttt-paren-face)
+          (if code (propertize code 'face 'ttt-code-face) "--")
+          (propertize ">" 'face 'ttt-paren-face)))
+
+(defun ttt--code-help-ch (ch &optional certain)
+  "Return code help of one char string CH.
+Does not include code for char included in string CERTAIN."
+  (let ((codes (or (ttt--rev ch) '(nil))))
+    (if (and certain (ttt--index certain ch))
+        ch
+      (concat ch (mapconcat #'ttt--make-code-help codes "")))))
+
+(defun ttt--code-help-str (str &optional certain)
+  "Return code help of string STR.
+Does not include code for char included in string CERTAIN."
+  (let* ((list (split-string str "" t))
+         (code-help-ch-no-certain (lambda (ch) (ttt--code-help-ch ch certain)))
+         (help-list (mapcar code-help-ch-no-certain list))
+         (str (mapconcat #'identity help-list "")))
+    str))
+
+;;; ttt-kkc
+
+(require 'kkc)
+
+;;;###autoload
+(defun ttt-do-ttt-with-kkc (&optional n)
+  "Convert string until caret or active region.
+If optional perfix arg N is given, use `kkc-region' to Kana Kanji Conversion.
+
+hrq.ydhr,. M-j       → きゅうきょ
+hrq.ydhr,. C-u M-j   → 急遽
+きゅうきょ C-u 5 M-j → 急遽"
+  (interactive "P")
+  (if (null n) (ttt-do-ttt)
+    (save-match-data
+      (let* ((left (if (region-active-p)
+                       (buffer-substring (region-beginning) (region-end))
+                     (buffer-substring (point-at-bol) (point))))
+             ret yomi)
+        (when (string-match "[0-9a-z;,./]+$" left)
+          (setq ret (ttt-do-ttt))
+          (setq left (buffer-substring (car ret) (cdr ret))))
+        (when (string-match "[ぁ-んヴヵヶー・]+$" left)
+          (setq yomi (match-string 0 left)))
+        (when yomi
+          (and (region-active-p)
+               (goto-char (+ (region-beginning) (length yomi))))
+          (let* ((len (kkc-region
+                       (- (point) (or (and (numberp n) n) (length yomi)))
+                       (point)))
+                 (str (buffer-substring (- (point) len) (point))))
+            (message (ttt--code-help-str str yomi))))))))
+
+;;; provide
+
+(provide 'ttt)
 ;;; ttt.el ends here
