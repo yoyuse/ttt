@@ -725,6 +725,188 @@ hrq.ydhr,. C-u M-j   → 急遽
                  (str (buffer-substring (- (point) len) (point))))
             (message (ttt--code-help-str str yomi))))))))
 
+;;; ttt-userdef
+
+;; 2022-11-30 必要な時だけ ttt-userdef-save-file を実行
+;; 2022-11-29 ttt-table を上書きする方式
+;; 2022-11-29 ttt.el の逆引きテーブルの仕様変更に対応
+;; 2022-11-29 ttt-userdef-alist が nil の時も ttt-userdef-file-name に保存する
+;; 2022-11-29 (or (not (eq (length ch) 1)) ...)
+;; 2022-11-28 ttt-userdef.el - ttt-table を上書きせず変換時等は ttt-table と ttt-userdef-alist の両方を見る方式
+
+;;; Known issues:
+
+;; - ttt-table の“葉”の部分にしか定義できない
+;; - 1 文字しか定義できない (熟語を定義した時の動作は未定義: 要チェック)
+;; - - → 1 文字チェックは入れた - 2022-11-29
+;; - migemo ttt isearch (titeto) 時にユーザ定義や上書き定義が反映されない
+;; - - ttt-table を上書きしないと難しい
+;; - - - → ttt-table を上書きする方式にした
+;; - - ttt-table を上書きするなら ^ - [ ] などの文字が定義された場合を考慮する必要
+;; - - - → 考慮されてるみたい (regexp-opt-charset により)
+;; - - ttt-table を上書きするなら ttt--rev-table の整合性を保つ必要
+;; - - - → たぶん整合性を保ってる
+;; - ttt.el: ttt-keys の変更にコードヘルプが追随しない (Dvorak なのに の<kd> 等)
+;; - - ttt--rev-table のデータ形式を変更する必要
+;; - - - → データ形式を変更し ttt-rev--revtable とした。これで追随するはず
+;; - ttt-userdef-define で定義した文字は ttt-userdef-undefine できるが、 ttt-table にもとからある文字は ttt-userdef-undefine できない
+
+;;; ttt--define
+
+(defun ttt--set (table keyseq ch)
+  "Set KEYSEQ position of array TABLE to one char string CH."
+  (if (= (length keyseq) 1)
+      (aset table (car keyseq) ch)
+    (ttt--set (aref table (car keyseq)) (cdr keyseq) ch)))
+
+(defun ttt--get (table keyseq)
+  "Get KEYSEQ position of array TABLE."
+  (if (= (length keyseq) 1)
+      (aref table (car keyseq))
+    (ttt--get (aref table (car keyseq)) (cdr keyseq))))
+
+(defun ttt-rev--set (revtable keyseq ch)
+  "Set value for CH in plist REVTABLE to KEYSEQ."
+  (let* ((old-ch (ttt--get ttt-table keyseq))
+         (rev (plist-member revtable (intern-soft old-ch ttt-rev--obarray))))
+    (if (and old-ch (= (length old-ch) 1) rev)
+        (setcar (cdr rev)
+                (cl-remove-if (apply-partially #'equal keyseq) (cadr rev)))))
+  (when (= (length ch) 1)
+    (plist-put revtable (intern ch ttt-rev--obarray)
+               (cons keyseq
+                     (plist-get revtable (intern-soft ch ttt-rev--obarray))))))
+
+(defun ttt--define (keyseq ch)
+  "Set KEYSEQ to CH."
+  (ttt-rev--set ttt-rev--revtable keyseq ch)
+  (ttt--set ttt-table keyseq ch))
+
+;;; ttt-userdef--set-string
+
+(defvar ttt-userdef-alist nil "Alist of keyseq to ch.")
+
+(defvar ttt-userdef-alist-copy nil "Copy of `ttt-userdef-alist'")
+
+(defun ttt-userdef--set (keyseq ch)
+  "Set KEYSEQ, list of key numbers, to one char string CH."
+  (setf (alist-get keyseq ttt-userdef-alist nil nil #'equal) ch)
+  (ttt--define keyseq ch))
+
+(defun ttt-userdef--unset (keyseq)
+  "Remove definition for KEYSEQ, list of key numbers."
+  (setf (alist-get keyseq ttt-userdef-alist nil 'remove #'equal) nil) ; XXX
+  (ttt--define keyseq ""))              ; XXX
+
+(defun ttt-userdef--get (keyseq)
+  "Look up KEYSEQ, list of key numbers and return definition."
+  (alist-get keyseq ttt-userdef-alist nil nil #'equal))
+
+(defun ttt-userdef--set-string (code ch)
+  "Set string CODE to one char string CH."
+  (ttt-userdef--set (ttt--string-to-keyseq code) ch))
+
+(defun ttt-userdef--unset-string (code)
+  "Remove definition for string CODE."
+  (ttt-userdef--unset (ttt--string-to-keyseq code)))
+
+(defun ttt-userdef--get-string (code)
+  "Return definition for CODE."
+  (ttt-userdef--get (ttt--string-to-keyseq code)))
+
+;;; save file
+
+(defvar ttt-userdef-file-name (locate-user-emacs-file "var/ttt-userdef-init.el")
+  "*File name for user definitions.")
+
+(defun ttt-userdef-save-file ()
+  "Write to file specified by `ttt-userdef-file-name'."
+  (let ((coding-system-for-write 'utf-8)
+        (print-length nil))
+    (when (and ttt-userdef-file-name
+               (not (equal ttt-userdef-alist ttt-userdef-alist-copy))
+               (or ttt-userdef-alist (file-exists-p ttt-userdef-file-name)))
+      (write-region (format "(setq ttt-userdef-alist '%S)"
+                            ttt-userdef-alist)
+                    nil
+                    ttt-userdef-file-name))))
+
+(add-hook 'kill-emacs-hook 'ttt-userdef-save-file)
+
+;;; load file
+
+(if (and ttt-userdef-file-name
+         (file-readable-p ttt-userdef-file-name))
+    (condition-case nil
+        (progn (load-file ttt-userdef-file-name)
+               (setq ttt-userdef-alist-copy (copy-alist ttt-userdef-alist)))
+      (ttt-userdef-error "Invalid data in %s" ttt-userdef-file-name)))
+
+(if (fboundp 'define-error)
+    (define-error 'ttt-userdef-error nil)
+  (put 'ttt-userdef-error 'error-conditions '(ttt-userdef-error error)))
+
+(defun ttt-userdef-error (&rest args)
+  "Signal error `ttt-userdef-error' with message ARGS."
+  (signal 'ttt-userdef-error (apply #'format-message args)))
+
+(let ((alist (reverse ttt-userdef-alist)))
+  (while alist
+    (ttt--define (caar alist) (cdar alist))
+    (setq alist (cdr alist))))
+
+;;; define/undefine
+
+;;;###autoload
+(defun ttt-userdef-undefine ()
+  "Undefine user defined code interactively."
+  (interactive)
+  (let* (code-str old-def)
+    (setq code-str (read-string "Undefine code: ")
+          old-def (ttt-userdef--get-string code-str))
+    (while (or (string= code-str "")
+               (null old-def)
+               (and old-def
+                    (not (y-or-n-p (format "Undefine %s%s? "
+                                           old-def
+                                           (ttt--make-code-help code-str))))))
+      (setq code-str (read-string "Undefine code: ")
+            old-def (ttt-userdef--get-string code-str)))
+    (ttt-userdef--unset-string code-str)
+    (message (format "Undefined %s%s" old-def (ttt--make-code-help code-str)))))
+
+;;;###autoload
+(defun ttt-userdef-define ()
+  "Define user defined code interactively."
+  (interactive)
+  (let* ((ch (read-string "Define character: "))
+         codes-str prompt code-str old-def)
+    (if (string= ch "")
+        (ttt-userdef-undefine)
+      (while (or (not (eq (length ch) 1))
+                 (and (setq codes-str (ttt-rev--lookup-string ch))
+                      (not (y-or-n-p (format "Redefine %s? "
+                                             (ttt--code-help-ch ch))))))
+        (setq ch (read-string "Define character: ")))
+      (setq prompt (format "Define %s to code: " ch)
+            code-str (read-string prompt)
+            old-def (progn (ttt--reset)
+                           (mapconcat (lambda (c) (ttt--trans c t))
+                                      (string-to-list code-str) "")))
+      (while (or (string= code-str "")
+                 (not (eq ttt--state ttt-table))
+                 (and (not (string= old-def code-str))
+                      (not (y-or-n-p
+                            (format "Overwrite %s%s? "
+                                    old-def
+                                    (ttt--make-code-help code-str))))))
+        (setq code-str (read-string prompt)
+              old-def (progn (ttt--reset)
+                             (mapconcat (lambda (c) (ttt--trans c t))
+                                        (string-to-list code-str) ""))))
+      (ttt-userdef--set-string code-str ch)
+      (message (format "Defined %s%s" ch (ttt--make-code-help code-str))))))
+
 ;;; provide
 
 (provide 'ttt)
