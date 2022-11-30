@@ -8,7 +8,7 @@ ttt は Emacs 上で動作するモードレス日本語入力です。
 
 ## 動作環境
 
-* Emacs 24.3 以降
+* Emacs 27.2 でテストしています。
 
 ## インストール
 
@@ -134,6 +134,22 @@ kkc の変換中は、次のようなキー操作が可能です。
 
 * 入力: `漢字にへんかん` <kbd>C-u 4 M-j</kbd>
 * 結果: `漢字に変換`
+
+### kkc を利用した交ぜ書き変換 (実験的機能)
+
+kkc-maze.el を `load-path` の通ったところに置いて init.el に次のように書いておくと kkc で交ぜ書き変換が利用できるようになるかも知れません。
+
+初回の読み込みには時間がかかります。
+
+``` emacs-lisp
+(require 'kkc-maze)
+(define-key global-map (kbd "M-j") 'ttt-do-ttt-with-kkc)
+```
+
+TT-code でかな漢字交じり語をタイプして <kbd>C-u M-j</kbd> を入力すると交ぜ書き変換が行われます。
+
+* 入力: `jendz/` <kbd>C-u M-j</kbd>
+* 結果: `漢字`
 
 ## 詳細とカスタマイズ
 

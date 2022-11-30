@@ -703,11 +703,18 @@ hrq.ydhr,. C-u M-j   → 急遽
       (let* ((left (if (region-active-p)
                        (buffer-substring (region-beginning) (region-end))
                      (buffer-substring (point-at-bol) (point))))
+             (pattern (if (and (boundp kkc-maze-enable-maze-p)
+                               kkc-maze-enable-maze-p)
+                          ;; "[^ -~\t\r\n]+$"
+                          "\\cj+$"              ; \cj matches Japanese char
+                        "[ぁ-んヴヵヶー・]+$"))
              ret yomi)
-        (when (string-match "[0-9a-z;,./]+$" left)
+        (when (string-match
+               (concat (regexp-opt-charset (string-to-list ttt-keys)) "+$")
+               left)
           (setq ret (ttt-do-ttt))
           (setq left (buffer-substring (car ret) (cdr ret))))
-        (when (string-match "[ぁ-んヴヵヶー・]+$" left)
+        (when (string-match pattern left)
           (setq yomi (match-string 0 left)))
         (when yomi
           (and (region-active-p)
