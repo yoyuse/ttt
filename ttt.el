@@ -1,4 +1,4 @@
-;;; ttt.el --- Tiny TT-code Translation   -*- lexical-binding: t; -*-
+;;; ttt.el --- Tiny TT-code Translation              -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2004-2022  YUSE Yosihiro
 
@@ -311,6 +311,14 @@
   (let ((case-fold-search nil))
     (string-match-p (regexp-quote substr) str)))
 
+(defun ttt--string-to-keyseq (str)
+  "Return list of key numbers for string STR."
+  (mapcar (apply-partially #'ttt--index ttt-keys) (split-string str "" t)))
+
+(defun ttt--keyseq-to-string (keyseq)
+  "Return string for KEYSEQ, list of key numbers."
+  (mapconcat (lambda (k) (substring ttt-keys k (1+ k))) keyseq ""))
+
 (defun ttt--reset()
   "Reset state of TT-code decoder."
   (setq ttt--remain "")
@@ -336,41 +344,10 @@ If PREFER-REMAIN is non-nil and result is empty string, output remain instead."
   (ttt--reset)
   (mapconcat 'ttt--trans (string-to-list str) ""))
 
-;; (defun ttt--backward (str)
-;;   "Scan TT-code backward in STR and decode it.
-;; Scanning is done with skipping tail (i.e. non-TT-code string) and then
-;; getting body (i.e. TT-code string).
-;; Return resulting list (DECODED-BODY BODY-LEN TAIL-LEN)."
-;;   (let* ((keys (string-to-list ttt-keys))
-;;          (ls (string-to-list str))
-;;          (len (length ls))
-;;          (i (1- len))
-;;          j dst k l)
-;;     (while (and (<= 0 i) (not (memq (nth i ls) keys)))
-;;       (setq i (1- i)))
-;;     (setq j i)
-;;     (while (and (<= 0 j) (memq (nth j ls) keys)
-;;                 (not (string-suffix-p ttt-delimiter (substring str 0 (1+ j)))))
-;;       (setq j (1- j)))
-;;     (setq dst (ttt--decode-string (substring str (1+ j) (1+ i))))
-;;     (setq k j)
-;;     (if (and (<= 0 k)
-;;              (string-suffix-p ttt-delimiter (substring str 0 (1+ k))))
-;;         (setq k (- k (length ttt-delimiter))
-;;               l k)
-;;       (setq l k)
-;;       (if (and ttt-remove-space
-;;                (<= 0 l)
-;;                (eq ?\  (nth l ls))
-;;                (string-match-p (concat ttt-remove-space-regexp "$")
-;;                                (substring str 0 l)))
-;;           (setq l (1- l))))
-;;     (list dst (- i l) (- len i 1))))
-
-(defun ttt--regexp-opt-charset-complemented (CHARS)
+(defun ttt--regexp-opt-charset-complemented (chars)
   "Return a regexp to match a character not in CHARS."
   (save-match-data
-    (let ((str (regexp-opt-charset CHARS)))
+    (let ((str (regexp-opt-charset chars)))
       (if (not (string-match "^\\(\\[\\)\\(.+\\)\\(]\\)$" str))
         (error "Unexpected regexp: %s" str) ; XXX
       (concat (match-string 1 str)
@@ -604,11 +581,6 @@ Returned regexp is put in parentheses if WITH-PAREN-P is non-nil."
          (dst (car decode-expand))
          (state (cdr decode-expand))
          (state (if (eq state ttt-table) [] state))
-         ;; ;; XXX: ttt-table の末端の要素は空文字列か長さ 1 の文字列で、
-         ;; ;; ^ や - や [ ] といった文字はないと仮定している
-         ;; (char-class (ttt--vector-flatten-concat state))
-         ;; (char-class (if (string= "" char-class) ""
-         ;;               (concat "[" char-class "]")))
          ;; XXX: ttt-table の末端の要素は空文字列か長さ 1 の文字列と仮定
          (char-class (ttt--vector-flatten-concat state))
          (char-class (if (string= "" char-class) ""
@@ -648,39 +620,39 @@ Returned regexp is put in parentheses if WITH-PAREN-P is non-nil."
 
 ;;; ttt-rev
 
-(defvar ttt--plist nil "Property list.")
-(defvar ttt--obarray (make-vector 4999 nil) "Object array.") ; 4999: prime
+(defvar ttt-rev--plist nil "Property list.")
+(defvar ttt-rev--obarray (make-vector 4999 nil) "Object array.") ; 4999: prime
 
-(defun ttt--rev-make-table (table &optional prefix)
-  "Make reverse table.
-PREFIX is prefix of code, TABLE is subtable."
-  (let* ((chars ttt-keys)
-         (k 0)
-         (prefix (or prefix "")))
-    (while (< k (length chars))
-      (let* ((ch (aref (string-to-vector ttt-keys) k))
-             (tbl (aref table k))
-             (code (concat prefix (char-to-string ch))))
+(defun ttt-rev--make-revtable (table &optional prefix)
+  "Make reverse table. PREFIX is prefix of code, TABLE is subtable."
+  (let* ((k 0)
+         (prefix (or prefix nil)))
+    (while (< k (length ttt-keys))
+      (let* ((tbl (aref table k))
+             (revcode (cons k prefix)))
         (cond ((vectorp tbl)
-               (ttt--rev-make-table tbl code))
+               (ttt-rev--make-revtable tbl revcode))
               ((and (stringp tbl) (not (string= "" tbl)))
-               (let* ((codes (plist-get ttt--plist
-                                        (intern-soft tbl ttt--obarray)))
-                      (codes (cons code codes)))
-                 (setq ttt--plist
-                       (plist-put ttt--plist (intern tbl ttt--obarray)
+               (let* ((codes (plist-get ttt-rev--plist
+                                        (intern-soft tbl ttt-rev--obarray)))
+                      (codes (cons (reverse revcode) codes)))
+                 (setq ttt-rev--plist
+                       (plist-put ttt-rev--plist (intern tbl ttt-rev--obarray)
                                   codes))))
               (t nil)))
       (setq k (1+ k))))
-  ttt--plist)
+  ttt-rev--plist)
 
-(defvar ttt--rev-table (ttt--rev-make-table ttt-table "")
+(defvar ttt-rev--revtable (ttt-rev--make-revtable ttt-table nil)
   "TT-code reverse table.")
 
-(defun ttt--rev (char)
-  "Look up one char string CHAR in reverse table."
-  (plist-get ttt--rev-table
-             (intern-soft char ttt--obarray)))
+(defun ttt-rev--lookup-keyseq (ch)
+  "Look up one char string CH in reverse table and return list of code keyseq."
+  (plist-get ttt-rev--revtable (intern-soft ch ttt-rev--obarray)))
+
+(defun ttt-rev--lookup-string (ch)
+  "Look up one char string CH in reverse table and return list of code string."
+  (mapcar #'ttt--keyseq-to-string (ttt-rev--lookup-keyseq ch)))
 
 ;;; ttt-code-help
 
@@ -699,7 +671,7 @@ PREFIX is prefix of code, TABLE is subtable."
 (defun ttt--code-help-ch (ch &optional certain)
   "Return code help of one char string CH.
 Does not include code for char included in string CERTAIN."
-  (let ((codes (or (ttt--rev ch) '(nil))))
+  (let ((codes (or (ttt-rev--lookup-string ch) '(nil))))
     (if (and certain (ttt--index certain ch))
         ch
       (concat ch (mapconcat #'ttt--make-code-help codes "")))))

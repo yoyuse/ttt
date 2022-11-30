@@ -60,7 +60,7 @@ TT-code をタイプして <kbd>M-j</kbd> (`ttt-do-ttt`) を入力すると、�
 
 たとえば、`Emacs 拡張` を検索するには、isearch に入って `Emacs 0rwj` とタイプします。このとき、おそらく `0rwj` が見つからないとエラーになりますが、かまわず <kbd>M-j</kbd> と入力してください。すると isearch 内で変換が行われ、`Emacs 拡張` が検索されます。
 
-#### Isearch a la Migemo
+### Migemo 風の isearch
 
 Emacs に [migemo.el](https://github.com/emacs-jp/migemo) がインストール・設定されていれば、<kbd>M-j</kbd> を入力することなく、migemo 風の isearch を行えます。
 
@@ -121,14 +121,14 @@ kkc の変換中は、次のようなキー操作が可能です。
 | `H`            | `kkc-hiragana`                           |
 | `K`            | `kkc-katakana`                           |
 | `C-o`          | `kkc-longer`                             |
-| `TAB`          | `kkc-shorter`                            |
+| `C-i`, `TAB`   | `kkc-shorter`                            |
 | `C-f`          | `kkc-next-phrase`                        |
 | `C-c`, `DEL`   | `kkc-cancel`                             |
-| `RET`          | `kkc-terminate`                          |
+| `C-m`, `RET`   | `kkc-terminate`                          |
 | `C-@`, `C-SPC` | `kkc-first-char-only`                    |
 | `C-h`          | `kkc-help`                               |
-| `I`            | `kkc-shorter-conversion`                 |
 | `O`            | `kkc-longer-phrase`                      |
+| `I`            | `kkc-shorter-conversion`                 |
 
 ひらがなを対象に文字数を指定して変換することもできます。
 
