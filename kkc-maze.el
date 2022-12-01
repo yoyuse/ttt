@@ -58,7 +58,7 @@
 ;; (defvar ttt-lookup-delimiter "[ :]"
 ;;   "*絞り込み検索で用いる読みの区切り文字列 (正規表現).")
 
-(defvar kkc-maze-cache-file-name (locate-user-emacs-file "var/kkc-maze-init.el")
+(defvar kkc-maze-cache-file-name (locate-user-emacs-file "kkc-maze-init.el")
   "*交ぜ書き変換で使用するキャッシュファイル名.
 Nil のときはキャッシュファイルを使用しない.")
 

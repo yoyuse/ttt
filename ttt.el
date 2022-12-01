@@ -703,7 +703,7 @@ hrq.ydhr,. C-u M-j   → 急遽
       (let* ((left (if (region-active-p)
                        (buffer-substring (region-beginning) (region-end))
                      (buffer-substring (point-at-bol) (point))))
-             (pattern (if (and (boundp kkc-maze-enable-maze-p)
+             (pattern (if (and (boundp 'kkc-maze-enable-maze-p)
                                kkc-maze-enable-maze-p)
                           ;; "[^ -~\t\r\n]+$"
                           "\\cj+$"              ; \cj matches Japanese char
@@ -816,7 +816,7 @@ hrq.ydhr,. C-u M-j   → 急遽
 
 ;;; save file
 
-(defvar ttt-userdef-file-name (locate-user-emacs-file "var/ttt-userdef-init.el")
+(defvar ttt-userdef-file-name (locate-user-emacs-file "ttt-userdef-init.el")
   "*File name for user definitions.")
 
 (defun ttt-userdef-save-file ()
