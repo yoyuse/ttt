@@ -67,16 +67,14 @@ Nil のときはキャッシュファイルを使用しない.")
   (let ((coding-system-for-write 'utf-8)
         (print-length nil))
     (when kkc-maze-cache-file-name
-      (write-region (format "(setq kkc-maze-tankanji-table '%S)
-(setq kkc-maze-tankanji-obarray %S)"
-                            kkc-maze-tankanji-table kkc-maze-tankanji-obarray)
+      (write-region (format "(setq kkc-maze-tankanji-alist '%S)"
+                            kkc-maze-tankanji-alist)
                     nil
                     kkc-maze-cache-file-name))))
 
 ;;; tankanji
 
-(defvar kkc-maze-tankanji-table nil "単漢字の読みを引くためのテーブル.")
-(defvar kkc-maze-tankanji-obarray (make-vector 4999 nil) "オブジェクト配列.")
+(defvar kkc-maze-tankanji-alist nil "単漢字の読みを引くための連想リスト.")
 
 (defun kkc-maze-tankanji-to-kana (n)
   "かなを表す数値 N を対応するかな文字列にする."
@@ -86,8 +84,8 @@ Nil のときはキャッシュファイルを使用しない.")
             (or (decode-char 'japanese-jisx0208 (+ (* #x100 #x24) (+ n #x20)))
                 (aref "ーぁあぃいぅうぇえぉおかがきぎくぐけげこごさざしじすずせぜそぞただちぢっつづてでとどなにぬねのはばぱひびぴふぶぷへべぺほぼぽまみむめもゃやゅゆょよらりるれろゎわゐゑをん" n))))))
 
-(defun kkc-maze-tankanji-make (dic pre)
-  "辞書 DIC と読みのプレフィックス PRE から単漢字の読みを引くためのテーブルを作成する."
+(defun kkc-maze-tankanji-alist-make (dic pre)
+  "辞書 DIC と読みのプレフィックス PRE から単漢字の読みを引くための連想リストを作成する."
   (let* ((l dic))
     (while l
       (let* ((l (car l))
@@ -96,16 +94,14 @@ Nil のときはキャッシュファイルを使用しない.")
              (yomi (concat pre (kkc-maze-tankanji-to-kana car))))
         (if (consp (car cdr))
             (dolist (kanji (car cdr))
-              (let* ((ls (plist-get kkc-maze-tankanji-table
-                                    (intern-soft kanji
-                                                 kkc-maze-tankanji-obarray))))
+              (let* ((ls (alist-get kanji kkc-maze-tankanji-alist
+                                    nil nil #'string-equal)))
                 (when (and (eq 1 (length kanji))
                            (not (member yomi ls)))
-                  (setq kkc-maze-tankanji-table
-                        (plist-put kkc-maze-tankanji-table
-                                   (intern kanji kkc-maze-tankanji-obarray)
-                                   (cons yomi ls)))))))
-        (kkc-maze-tankanji-make (cdr cdr) yomi))
+                  (setf (alist-get kanji kkc-maze-tankanji-alist
+                                   nil nil #'string-equal)
+                        (cons yomi ls))))))
+        (kkc-maze-tankanji-alist-make (cdr cdr) yomi))
       (setq l (cdr l)))))
 
 (defun kkc-maze-cache-make ()
@@ -115,12 +111,11 @@ Nil のときはキャッシュファイルを使用しない.")
   (load-library "ja-dic/ja-dic")
   ;;
   (message "Making tankanji table...")
-  ;; (setq kkc-maze-tankanji-table nil)
-  ;; (setq kkc-maze-tankanji-obarray (make-vector 4999 nil))
-  (kkc-maze-tankanji-make (cdr skkdic-prefix) "")
-  (kkc-maze-tankanji-make (cdr skkdic-postfix) "")
-  (kkc-maze-tankanji-make (cdr skkdic-okuri-ari) "")
-  (kkc-maze-tankanji-make (cdr skkdic-okuri-nasi) "")
+  ;; (setq kkc-maze-tankanji-alist nil)
+  (kkc-maze-tankanji-alist-make (cdr skkdic-prefix) "")
+  (kkc-maze-tankanji-alist-make (cdr skkdic-postfix) "")
+  (kkc-maze-tankanji-alist-make (cdr skkdic-okuri-ari) "")
+  (kkc-maze-tankanji-alist-make (cdr skkdic-okuri-nasi) "")
   (message "Making tankanji table... done"))
 
 ;; 単漢字テーブルの作成
@@ -143,8 +138,7 @@ Nil のときはキャッシュファイルを使用しない.")
 
 (defun kkc-maze-tankanji-lookup (kanji)
   "単漢字 KANJI の読みのリストを返す."
-  (plist-get kkc-maze-tankanji-table
-             (intern-soft kanji kkc-maze-tankanji-obarray)))
+  (alist-get kanji kkc-maze-tankanji-alist nil nil #'string-equal))
 
 (defun kkc-maze-lookup-yomi (maze)
   "漢字かな交じり語 MAZE の読みのリストを返す."
