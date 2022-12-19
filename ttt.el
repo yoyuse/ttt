@@ -620,8 +620,7 @@ Returned regexp is put in parentheses if WITH-PAREN-P is non-nil."
 
 ;;; ttt-rev
 
-(defvar ttt-rev--plist nil "Property list.")
-(defvar ttt-rev--obarray (make-vector 4999 nil) "Object array.") ; 4999: prime
+(defvar ttt-rev--alist nil "Association list.")
 
 (defun ttt-rev--make-revtable (table &optional prefix)
   "Make reverse table. PREFIX is prefix of code, TABLE is subtable."
@@ -633,22 +632,19 @@ Returned regexp is put in parentheses if WITH-PAREN-P is non-nil."
         (cond ((vectorp tbl)
                (ttt-rev--make-revtable tbl revcode))
               ((and (stringp tbl) (not (string= "" tbl)))
-               (let* ((codes (plist-get ttt-rev--plist
-                                        (intern-soft tbl ttt-rev--obarray)))
+               (let* ((codes (alist-get tbl ttt-rev--alist nil nil #'string=))
                       (codes (cons (reverse revcode) codes)))
-                 (setq ttt-rev--plist
-                       (plist-put ttt-rev--plist (intern tbl ttt-rev--obarray)
-                                  codes))))
+                 (setf (alist-get tbl ttt-rev--alist nil nil #'string=) codes)))
               (t nil)))
       (setq k (1+ k))))
-  ttt-rev--plist)
+  ttt-rev--alist)
 
 (defvar ttt-rev--revtable (ttt-rev--make-revtable ttt-table nil)
   "TT-code reverse table.")
 
 (defun ttt-rev--lookup-keyseq (ch)
   "Look up one char string CH in reverse table and return list of code keyseq."
-  (plist-get ttt-rev--revtable (intern-soft ch ttt-rev--obarray)))
+  (alist-get ch ttt-rev--alist nil nil #'string=))
 
 (defun ttt-rev--lookup-string (ch)
   "Look up one char string CH in reverse table and return list of code string."
@@ -766,16 +762,15 @@ hrq.ydhr,. C-u M-j   → 急遽
     (ttt--get (aref table (car keyseq)) (cdr keyseq))))
 
 (defun ttt-rev--set (revtable keyseq ch)
-  "Set value for CH in plist REVTABLE to KEYSEQ."
+  "Set value for CH in alist REVTABLE to KEYSEQ."
   (let* ((old-ch (ttt--get ttt-table keyseq))
-         (rev (plist-member revtable (intern-soft old-ch ttt-rev--obarray))))
+         (rev (assoc old-ch revtable #'string=)))
     (if (and old-ch (= (length old-ch) 1) rev)
-        (setcar (cdr rev)
-                (cl-remove-if (apply-partially #'equal keyseq) (cadr rev)))))
+        (setcdr rev
+                (cl-remove-if (apply-partially #'equal keyseq) (cdr rev)))))
   (when (= (length ch) 1)
-    (plist-put revtable (intern ch ttt-rev--obarray)
-               (cons keyseq
-                     (plist-get revtable (intern-soft ch ttt-rev--obarray))))))
+    (setf (alist-get ch ttt-rev--alist nil nil #'string=)
+          (cons keyseq (alist-get ch ttt-rev--alist nil nil #'string=)))))
 
 (defun ttt--define (keyseq ch)
   "Set KEYSEQ to CH."
