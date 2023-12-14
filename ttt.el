@@ -1,6 +1,6 @@
 ;;; ttt.el --- Tiny TT-code Translation              -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2004-2022  YUSE Yosihiro
+;; Copyright (C) 2004-2023  YUSE Yosihiro
 
 ;; Author: YUSE Yosihiro <yoyuse@gmail.com>
 ;; Keywords: input method, japanese
@@ -652,7 +652,7 @@ Returned regexp is put in parentheses if WITH-PAREN-P is non-nil."
 
 ;;; ttt-code-help
 
-(defface ttt-paren-face '((t (:inherit font-lock-comment-face)))
+(defface ttt-paren-face '((t (:inherit font-lock-comment-face :slant normal)))
   "Face for paren of code help.")
 
 (defface ttt-code-face '((t (:inherit font-lock-string-face)))
