@@ -1,6 +1,6 @@
 ;;; kkc-maze.el --- kkc with mazegaki conversion     -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2019-2022  YUSE Yosihiro
+;; Copyright (C) 2019-2023  YUSE Yosihiro
 
 ;; Author: YUSE Yosihiro <yoyuse@gmail.com>
 ;; Keywords: input method, japanese
@@ -20,6 +20,7 @@
 
 ;;; Commentary:
 
+;; 2023-12-07 kkc-maze-add-sokuon: enable conversions e.g. "一ぱん" → "一般"
 ;; 2022-11-26 kkc-maze.el from ttt-maze-kkc.el
 ;; 2019-05-12
 ;; 2019-05-11 ttt-maze-kkc.el
@@ -136,9 +137,26 @@ Nil のときはキャッシュファイルを使用しない.")
   "Signal error `kkc-maze-error' with message ARGS."
   (signal 'kkc-maze-error (apply #'format-message args)))
 
+;; (defun kkc-maze-tankanji-lookup (kanji)
+;;   "単漢字 KANJI の読みのリストを返す."
+;;   (alist-get kanji kkc-maze-tankanji-alist nil nil #'string-equal))
+
+(defun kkc-maze-add-sokuon (list)
+  "読みのリスト LIST に促音便形を追加した新しいリストを返す."
+  (let* ((list-fixed list))
+    (dolist (yomi list list-fixed)
+      (let* ((need-fix (string-match-p "[つく]$" yomi))
+             (yomi-fixed (replace-regexp-in-string "[つく]$" "っ" yomi)))
+        (when (and need-fix
+                   (not (member yomi-fixed list)))
+          (setq list-fixed (cons yomi-fixed list-fixed)))))))
+
 (defun kkc-maze-tankanji-lookup (kanji)
   "単漢字 KANJI の読みのリストを返す."
-  (alist-get kanji kkc-maze-tankanji-alist nil nil #'string-equal))
+  (let* ((list (alist-get kanji kkc-maze-tankanji-alist nil nil
+                          #'string-equal))
+         (list (kkc-maze-add-sokuon list)))
+    list))
 
 (defun kkc-maze-lookup-yomi (maze)
   "漢字かな交じり語 MAZE の読みのリストを返す."
