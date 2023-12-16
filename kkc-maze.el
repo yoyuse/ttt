@@ -145,8 +145,9 @@ Nil のときはキャッシュファイルを使用しない.")
   "読みのリスト LIST に促音便形を追加した新しいリストを返す."
   (let* ((list-fixed list))
     (dolist (yomi list list-fixed)
-      (let* ((need-fix (string-match-p "[つく]$" yomi))
-             (yomi-fixed (replace-regexp-in-string "[つく]$" "っ" yomi)))
+      (let* ((need-fix (string-match-p "\\(.+\\)[つく]$" yomi))
+             (yomi-fixed (replace-regexp-in-string "\\(.+\\)[つく]$"
+                                                   "\\1っ" yomi)))
         (when (and need-fix
                    (not (member yomi-fixed list)))
           (setq list-fixed (cons yomi-fixed list-fixed)))))))
