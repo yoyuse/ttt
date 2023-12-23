@@ -98,6 +98,8 @@ Nil のときはキャッシュファイルを使用しない.")
               (let* ((ls (alist-get kanji kkc-maze-tankanji-alist
                                     nil nil #'string-equal)))
                 (when (and (eq 1 (length kanji))
+                           ;; 漢字にマッチ ("・" や "ー" などを除外)
+                           (string-match-p "\\cC" kanji)
                            (not (member yomi ls)))
                   (setf (alist-get kanji kkc-maze-tankanji-alist
                                    nil nil #'string-equal)
