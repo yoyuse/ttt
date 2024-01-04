@@ -1,6 +1,6 @@
 ;;; ttt.el --- Tiny TT-code Translation              -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2004-2023  YUSE Yosihiro
+;; Copyright (C) 2004-2024  YUSE Yosihiro
 
 ;; Author: YUSE Yosihiro <yoyuse@gmail.com>
 ;; Keywords: input method, japanese
@@ -77,15 +77,13 @@
   :group 'ttt)
 
 (defcustom ttt-remove-space nil
-  "*If non-nil, remove space between alphanumeric string and Japanese string."
+  "If non-nil, remove space between alphanumeric string and Japanese string."
   :type 'boolean
   :group 'ttt)
 
 (defcustom ttt-remove-space-regexp
-  ;; "[a-zA-Z0-9/]$"
-  ;; "*Space after string matching the regexp is removed when `ttt-remove-space'."
   "[a-zA-Z0-9/]"
-  "*Space after string ending with the regexp is removed when `ttt-remove-space'."
+  "Space after string ending with the regexp is removed when `ttt-remove-space'."
   :type 'regexp
   :group 'ttt)
 
@@ -539,7 +537,7 @@ If input char is RET (or C-m), then read TT-code keys as input char."
 ;;
 
 (defcustom ttt-isearch-enable-p t
-  "*Enable the ttt feature on isearch or not."
+  "Enable the ttt feature on isearch or not."
   :group 'ttt
   :type 'boolean)
 

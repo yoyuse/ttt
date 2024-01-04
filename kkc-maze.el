@@ -1,6 +1,6 @@
 ;;; kkc-maze.el --- kkc with mazegaki conversion     -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2019-2023  YUSE Yosihiro
+;; Copyright (C) 2019-2024  YUSE Yosihiro
 
 ;; Author: YUSE Yosihiro <yoyuse@gmail.com>
 ;; Keywords: input method, japanese
@@ -376,7 +376,7 @@ LEN が MAZE の長さより短いときは, MAZE の最初の LEN 文字だけ�
 ;;; advice
 
 (defcustom kkc-maze-enable-maze-p t
-  "*非 nil のとき KKC で交ぜ書き変換を行う."
+  "非 nil のとき KKC で交ぜ書き変換を行う."
   :group 'ttt
   :type 'boolean)
 
