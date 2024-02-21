@@ -76,6 +76,11 @@
   :type 'string
   :group 'ttt)
 
+(defcustom ttt-keep-remainder t
+  "If non-nil, ttt keeps remainder to show virtual keyboard."
+  :type 'boolean
+  :group 'ttt)
+
 (defcustom ttt-remove-space nil
   "If non-nil, remove space between alphanumeric string and Japanese string."
   :type 'boolean
@@ -340,7 +345,9 @@ If PREFER-REMAIN is non-nil and result is empty string, output remain instead."
 (defun ttt--decode-string (str)
   "Decode TT-code string STR to Japanese string."
   (ttt--reset)
-  (mapconcat 'ttt--trans (string-to-list str) ""))
+  (concat
+   (mapconcat 'ttt--trans (string-to-list str) "")
+   (if ttt-keep-remainder ttt--remain "")))
 
 (defun ttt--regexp-opt-charset-complemented (chars)
   "Return a regexp to match a character not in CHARS."
@@ -367,51 +374,58 @@ If PREFER-REMAIN is non-nil and result is empty string, output remain instead."
   "Scan TT-code backward in STR and decode it.
 Scanning is done with skipping tail (i.e. non-TT-code string) and then
 getting body (i.e. TT-code string).
-Return resulting list (DECODED-BODY BODY-LEN TAIL-LEN)."
+Return resulting list (DECODED-BODY BODY-LEN TAIL-LEN), or nil."
   (save-match-data
     (let ((case-fold-search nil))
       (if (not (string-match (ttt--make-pattern) str))
-          (list "" 0 0)
-        (let* ((head (match-string-no-properties 1 str))
-               (src (match-string-no-properties 2 str))
-               (delimiter (match-string-no-properties 3 str))
-               (body (match-string-no-properties 4 str))
-               (tail (match-string-no-properties 5 str))
-               (dst (ttt--decode-string body)))
-          (if (and ttt-remove-space (null delimiter)
-                   (string-match-p (concat ttt-remove-space-regexp " $") head))
-              (list dst (1+ (length src)) (length tail))
-            (list dst (length src) (length tail))))))))
+          nil
+        (catch 'tag
+          (let* ((head (match-string-no-properties 1 str))
+                 (src (match-string-no-properties 2 str))
+                 (delimiter (match-string-no-properties 3 str))
+                 (body (match-string-no-properties 4 str))
+                 (tail (match-string-no-properties 5 str))
+                 (dst (ttt--decode-string body)))
+            (if (or (string-empty-p body) (string= dst body)) (throw 'tag nil))
+            (if (and ttt-remove-space (null delimiter)
+                     (string-match-p (concat ttt-remove-space-regexp " $")
+                                     head))
+                (list dst (1+ (length src)) (length tail))
+              (list dst (length src) (length tail)))))))))
 
 (defun ttt--region (beg end)
   "Decode region between BEG and END.
-Return beginning and end position of decoded string as (BEG . END)."
-  (let* ((src (buffer-substring beg end))
-         (dst (ttt--decode-string src)))
-    (goto-char beg)
-    (delete-region beg end)
-    (insert dst)
-    (cons beg (+ beg (length dst)))))
+Return beginning and end position of decoded string as (BEG . END), or nil."
+  (catch 'tag
+    (let* ((src (buffer-substring beg end))
+           (dst (ttt--decode-string src)))
+      (if (string= dst src) (throw 'tag nil))
+      (goto-char beg)
+      (delete-region beg end)
+      (insert dst)
+      (cons beg (+ beg (length dst))))))
 
 ;;;###autoload
 (defun ttt-do-ttt ()
   "Do ttt.
-Return beginning and end position of decoded string as (BEG . END)."
+Return beginning and end position of decoded string as (BEG . END), or nil."
   (interactive)
-  (if (region-active-p)
-      (ttt--region (region-beginning) (region-end))
-    (let* ((src (buffer-substring (point-at-bol) (point)))
-           (ls (ttt--backward src))
-           (dst (car ls))
-           (body-len (car (cdr ls)))
-           (tail-len (car (cdr (cdr ls))))
-           (end (- (point) tail-len))
-           (beg (- end body-len)))
-      (save-excursion
-        (goto-char beg)
-        (insert dst)
-        (delete-region (point) (+ (point) body-len))
-        (cons beg (+ beg (length dst)))))))
+  (catch 'tag
+    (if (region-active-p)
+        (ttt--region (region-beginning) (region-end))
+      (let* ((src (buffer-substring (point-at-bol) (point)))
+             (ls (ttt--backward src))
+             (_ (if (null ls) (throw 'tag nil)))
+             (dst (car ls))
+             (body-len (car (cdr ls)))
+             (tail-len (car (cdr (cdr ls))))
+             (end (- (point) tail-len))
+             (beg (- end body-len)))
+        (save-excursion
+          (goto-char beg)
+          (insert dst)
+          (delete-region (point) (+ (point) body-len))
+          (cons beg (+ beg (length dst))))))))
 
 ;;; isearch
 
@@ -419,27 +433,29 @@ Return beginning and end position of decoded string as (BEG . END)."
 (defun ttt-isearch-do-ttt ()
   "Do ttt in isearch."
   (interactive)
-  (let* ((i 0)
-         (src isearch-string)
-         (len (length src))
-         (ls (ttt--backward src))
-         (dst (car ls))
-         (body-len (car (cdr ls)))
-         (tail-len (car (cdr (cdr ls))))
-         (n (+ body-len tail-len)))
-    (while (< i n)
-      (isearch-pop-state)
-      (setq i (1+ i)))
-    (setq i 0)
-    (while (< i (length dst))
-      (isearch-process-search-string (substring dst i (1+ i))
-                                     (substring dst i (1+ i)))
-      (setq i (1+ i)))
-    (setq i (- len tail-len))
-    (while (< i len)
-      (isearch-process-search-string (substring src i (1+ i))
-                                     (substring src i (1+ i)))
-      (setq i (1+ i)))))
+  (catch 'tag
+    (let* ((i 0)
+           (src isearch-string)
+           (len (length src))
+           (ls (ttt--backward src))
+           (_ (if (null ls) (throw 'tag nil)))
+           (dst (car ls))
+           (body-len (car (cdr ls)))
+           (tail-len (car (cdr (cdr ls))))
+           (n (+ body-len tail-len)))
+      (while (< i n)
+        (isearch-pop-state)
+        (setq i (1+ i)))
+      (setq i 0)
+      (while (< i (length dst))
+        (isearch-process-search-string (substring dst i (1+ i))
+                                       (substring dst i (1+ i)))
+        (setq i (1+ i)))
+      (setq i (- len tail-len))
+      (while (< i len)
+        (isearch-process-search-string (substring src i (1+ i))
+                                       (substring src i (1+ i)))
+        (setq i (1+ i))))))
 
 ;;; jump
 
@@ -678,6 +694,40 @@ Does not include code for char included in string CERTAIN."
          (help-list (mapcar code-help-ch-no-certain list))
          (str (mapconcat #'identity help-list "")))
     str))
+
+;;; ttt-vkb
+
+(defun ttt--show-vkb ()
+  "Show virtual keyboad in minibuffer when necessary."
+  (let* ((length (length ttt-keys))
+         (state ttt--state)
+         (str "")
+         elm ch)
+    (when (and ttt-keep-remainder
+               (not (eq state ttt-table))
+               (vectorp state) (<= length (length state)))
+      (dotimes (i length)
+        (setq elm (aref state i))
+        (cond ((vectorp elm) (setq ch "+"))
+              ((string-empty-p elm) (setq ch "-"))
+              ((stringp elm) (setq ch elm))
+              (t (setq ch "?")))
+        (setq str (concat str " " ch))
+        (if (and (= (% (1+ i) 10) 0) (/= (1+ i) length))
+            (setq str (concat str "\n"))
+          (if (and (< (string-width ch) 2) (/= (1+ i) length))
+              (setq str (concat str " ")))))
+      (message "%s" str))))
+
+(defadvice ttt-do-ttt (after ttt-show-vkb-ad activate)
+  "Advice to show virtual keyboard."
+  (ttt--show-vkb)
+  ad-return-value)
+
+(defadvice ttt-isearch-do-ttt (after ttt-isearch-show-vkb-ad activate)
+  "Advice to show virtual keyboard."
+  (ttt--show-vkb)
+  ad-return-value)
 
 ;;; ttt-kkc
 
