@@ -206,7 +206,7 @@
 *****蒐讐蹴酋什鰹葛恰鰍梶戎夙峻竣舜兜鞄樺椛叶駿楯淳醇曙噛鎌釜蒲竃渚薯藷恕鋤
 *****叱嫉悉蔀篠柿蛙馨浬骸偲柴屡蕊縞撹廓劃鈎蛎紗杓灼錫惹橿樫笠顎赫腫呪綬洲繍
 *****燦珊纂讃餐恢廻駕蛾臥斬仔屍孜斯凱蟹芥晦魁獅爾痔而蒔鎧蓋碍崖咳汐鴫竺宍雫
-*****埼碕鷺咋朔嘉伽俺牡桶柵窄鮭笹匙蝦茄苛禾珂拶*薩皐鯖峨俄霞迦嘩捌錆鮫晒撒
+*****埼碕鷺咋朔嘉伽俺牡桶柵窄鮭笹匙蝦茄苛禾珂拶$薩皐鯖峨俄霞迦嘩捌錆鮫晒撒
 *****痕艮些叉嵯艶燕焔掩怨沙瑳裟坐挫旺甥鴛薗苑哉塞采犀砦臆荻鴎鴬襖冴阪堺榊肴
 迄沫俣亦桝*****蜜箕蔓麿侭槻佃柘辻蔦牟粍稔蓑湊綴鍔椿潰壷牝姪冥椋鵡嬬紬吊剃悌
 孟摸麺緬棉*****餅勿杢儲蒙挺梯汀碇禎悶貰籾*尤諦蹄鄭釘鼎弥耶爺冶也擢鏑溺轍填
@@ -252,7 +252,7 @@
 **********儀偽騎飢輝尋尽迅酢吹犠欺擬戯宜帥*炊睡遂窮朽虐脚詰酔錘随髄崇
 **********鑑貫艦肝缶醸錠嘱殖辱幾岐頑陥閑侵唇娠慎浸軌祈棄棋忌紳薪診辛刃
 **********兆柱宙暖誕蛮妃扉披泌弟頂腸．潮疲碑罷微匹灯刀冬笛敵姫漂苗浜賓
-**********燃届毒銅童頻敏瓶怖扶拝俳，*馬浮符腐膚譜畑麦梅』肺賦赴附侮封
+**********燃届毒銅童頻敏瓶怖扶拝俳，&馬浮符腐膚譜畑麦梅』肺賦赴附侮封
 **********肥悲晩飯班伏覆沸噴墳腹貧氷俵鼻紛雰丙塀幣墓陛閉粉奮壁癖偏遍穂
 **********幕妹牧棒亡慕簿倣俸峰勇油鳴…脈崩抱泡砲縫覧卵翌幼預胞芳褒飽乏
 **********零隷林緑律傍剖坊妨帽劣暦齢麗霊忙冒紡肪膨炉錬廉裂烈謀僕墨撲朴
@@ -325,9 +325,15 @@
          (ttb (ttt--make-subtable ttt--ttb
                                   (lambda (ch) (if (string= ch "*") "" ch))))
          (ttl (ttt--make-subtable ttt--ttl
-                                  (lambda (ch) (if (string= ch "*") "" ch))))
+                                  (lambda (ch)
+                                    (cond ((string= ch "*") "")
+                                          ((string= ch "$") "@m")
+                                          (t ch)))))
          (ttr (ttt--make-subtable ttt--ttr
-                                  (lambda (ch) (if (string= ch "*") "" ch))))
+                                  (lambda (ch)
+                                    (cond ((string= ch "*") "")
+                                          ((string= ch "&") "@b")
+                                          (t ch)))))
          (ttc (ttt--make-subtable ttt--ttc
                                   (lambda (ch)
                                     (cond ((string= ch "*") "")
@@ -444,7 +450,10 @@ Return resulting list (DECODED-BODY BODY-LEN TAIL-LEN), or nil."
 Return beginning and end position of decoded string as (BEG . END), or nil."
   (catch 'tag
     (let* ((src (buffer-substring beg end))
-           (dst (ttt--decode-string src)))
+           (dst (ttt--decode-string src))
+           (_ (if (and ttt-keep-remainder (not (eq ttt--state ttt-table)))
+                  (throw 'tag nil)))
+           (dst (ttt--reduce dst)))
       (if (string= dst src) (throw 'tag nil))
       (goto-char beg)
       (delete-region beg end)
@@ -463,6 +472,9 @@ Return beginning and end position of decoded string as (BEG . END), or nil."
              (ls (ttt--backward src))
              (_ (if (null ls) (throw 'tag nil)))
              (dst (car ls))
+             (_ (if (and ttt-keep-remainder (not (eq ttt--state ttt-table)))
+                    (throw 'tag nil)))
+             (dst (ttt--reduce dst))
              (body-len (car (cdr ls)))
              (tail-len (car (cdr (cdr ls))))
              (end (- (point) tail-len))
@@ -486,6 +498,9 @@ Return beginning and end position of decoded string as (BEG . END), or nil."
            (ls (ttt--backward src))
            (_ (if (null ls) (throw 'tag nil)))
            (dst (car ls))
+           (_ (if (and ttt-keep-remainder (not (eq ttt--state ttt-table)))
+                  (throw 'tag nil)))
+           (dst (ttt--reduce dst))
            (body-len (car (cdr ls)))
            (tail-len (car (cdr (cdr ls))))
            (n (+ body-len tail-len)))
@@ -743,6 +758,9 @@ Does not include code for char included in string CERTAIN."
 
 ;;; ttt-vkb
 
+(defface ttt-special-char-face '((t (:inherit font-lock-constant-face)))
+  "*Face for special character of vkb")
+
 (defun ttt--show-vkb ()
   "Show virtual keyboad in minibuffer when necessary."
   (let* ((length (length ttt-keys))
@@ -754,10 +772,16 @@ Does not include code for char included in string CERTAIN."
                (vectorp state) (<= length (length state)))
       (dotimes (i length)
         (setq elm (aref state i))
-        (cond ((vectorp elm) (setq ch "+"))
-              ((string= "" elm) (setq ch "-"))
+        (cond ((vectorp elm)
+               (setq ch (propertize "+" 'face 'ttt-special-char-face)))
+              ((string= "@b" elm)
+               (setq ch (propertize "◆" 'face 'ttt-special-char-face)))
+              ((string= "@m" elm)
+               (setq ch (propertize "◇" 'face 'ttt-special-char-face)))
+              ((string= "" elm)
+               (setq ch (propertize "-" 'face 'ttt-special-char-face)))
               ((stringp elm) (setq ch elm))
-              (t (setq ch "?")))
+              (t (setq ch (propertize "?" 'face 'ttt-special-char-face))))
         (setq str (concat str " " ch))
         (if (and (= (% (1+ i) 10) 0) (/= (1+ i) length))
             (setq str (concat str "\n"))
@@ -774,6 +798,281 @@ Does not include code for char included in string CERTAIN."
   "Advice to show virtual keyboard."
   (ttt--show-vkb)
   ad-return-value)
+
+;;; ttt-bushu
+
+(defvar ttt-bushu-rev (locate-user-emacs-file "bushu.rev")
+  "*File path of \"bushu.rev\".")
+
+(defvar ttt--bushu-rev nil)
+
+(defvar ttt--bushu-dic nil)
+
+(defun ttt-bushu-read-rev ()
+  (interactive)
+  (when (file-readable-p ttt-bushu-rev)
+    (setq ttt--bushu-rev nil
+          ttt--bushu-dic nil)           ; XXX
+    (let* ((str (with-temp-buffer
+                  (insert-file-contents ttt-bushu-rev)
+                  (buffer-substring-no-properties (point-min) (point-max))))
+           (lines (split-string str "\n" t)))
+      (dolist (line (reverse lines))
+        (let* ((ls (split-string line "" t))
+               (len (length ls)))
+          (cond ((= len 2)
+                 (setq ttt--bushu-rev
+                       (cons `(,(nth 1 ls) ,(nth 0 ls) "") ttt--bushu-rev)))
+                ((= len 3)
+                 (setq ttt--bushu-rev
+                       (cons `(,(nth 0 ls) ,(nth 1 ls) ,(nth 2 ls))
+                             ttt--bushu-rev))
+                 (setq ttt--bushu-dic
+                       (cons `(,(concat (nth 1 ls) (nth 2 ls)) ,(nth 0 ls))
+                             ttt--bushu-dic)))
+                (t nil)))))))
+
+(ttt-bushu-read-rev)
+
+(defun ttt--bushu-look-sub (a b)
+  (nth 1 (assoc (concat a b) ttt--bushu-dic)))
+
+(defun ttt--bushu-look-rev (c)
+  (or (cdr (assoc c ttt--bushu-rev))
+      `(,c "")))
+
+(defun ttt--bushu-look-one-sided (a b)
+  (let* ((ret nil)
+         (a12 (ttt--bushu-look-rev a)) (a1 (nth 0 a12)) (a2 (nth 1 a12))
+         (b12 (ttt--bushu-look-rev b)) (b1 (nth 0 b12)) (b2 (nth 1 b12))
+         (c (ttt--bushu-look-sub a b)))
+    ;; 文字の足し算
+    (if c (setq ret (cons c ret)))
+    ;; 文字の引き算
+    (if (or (string= a2 b) (and (string= a2 b1) (string= "" b2)))
+        (setq ret (cons a1 ret)))
+    (if (or (string= a1 b) (and (string= a1 b1) (string= "" b2)))
+        (setq ret (cons a2 ret)))
+    ;; 部品の足し算
+    (if (setq c (ttt--bushu-look-sub a b1)) (setq ret (cons c ret)))
+    (if (setq c (ttt--bushu-look-sub a b2)) (setq ret (cons c ret)))
+    (if (setq c (ttt--bushu-look-sub a1 b)) (setq ret (cons c ret)))
+    (if (setq c (ttt--bushu-look-sub a1 b1)) (setq ret (cons c ret)))
+    (if (setq c (ttt--bushu-look-sub a1 b2)) (setq ret (cons c ret)))
+    (if (setq c (ttt--bushu-look-sub a2 b)) (setq ret (cons c ret)))
+    (if (setq c (ttt--bushu-look-sub a2 b1)) (setq ret (cons c ret)))
+    (if (setq c (ttt--bushu-look-sub a2 b2)) (setq ret (cons c ret)))
+    ;; 部品の引き算
+    (if (string= a2 b1) (setq ret (cons a1 ret)))
+    (if (string= a1 b2) (setq ret (cons a2 ret)))
+    (if (string= a1 b1) (setq ret (cons a2 ret)))
+    (if (string= a2 b2) (setq ret (cons a1 ret)))
+    ;;
+    (reverse ret)))
+
+(defun ttt--bushu-look (a b)
+  (let* ((ls (append (ttt--bushu-look-one-sided a b)
+                     (ttt--bushu-look-one-sided b a)))
+         (ret nil))
+    (dolist (c ls)
+      (if (and (not (member c ret))
+               (not (string= "" c))
+               (not (string= a c))
+               (not (string= b c)))
+          (setq ret (cons c ret))))
+    (reverse ret)))
+
+;;; ttt-maze
+
+(defvar ttt-maze-kanakanji-dic (locate-user-emacs-file "kanakanji.dic")
+  "*File path of \"kanakanji.dic\".")
+
+(defvar ttt-maze-tankanji-rev (locate-user-emacs-file "tankanji.rev")
+  "*File path of \"tankanji.rev\".")
+
+(defvar ttt--maze-dic nil)
+
+(defvar ttt--maze-rev nil)
+
+(defun ttt-maze-read-dic ()
+  (interactive)
+  (when (file-readable-p ttt-maze-kanakanji-dic)
+    (setq ttt--maze-dic nil)
+    (let* ((str (with-temp-buffer
+                  (insert-file-contents ttt-maze-kanakanji-dic)
+                  (buffer-substring (point-min) (point-max))))
+           (lines (split-string str "\n" t)))
+      (dolist (line (reverse lines))
+        (let* ((ls (split-string line " /" t)) ; XXX: 空白で終わる候補がないと仮定
+               yomi cands)
+          (when (< 1 (length ls))
+            (setq yomi (car ls)
+                  cands (split-string (cadr ls) "/" t))
+            (setq ttt--maze-dic
+                  (cons (cons yomi cands) ttt--maze-dic))))))))
+
+(defun ttt-maze-read-rev ()
+  (interactive)
+  (when (file-readable-p ttt-maze-tankanji-rev)
+    (setq ttt--maze-rev nil)
+    (let* ((str (with-temp-buffer
+                  (insert-file-contents ttt-maze-tankanji-rev)
+                  (buffer-substring (point-min) (point-max))))
+           (lines (split-string str "\n" t)))
+      (dolist (line (reverse lines))
+        (let* ((ls (split-string line " /" t)) ; XXX: 空白で終わる候補がないと仮定
+               kanji yomis)
+          (when (< 1 (length ls))
+            (setq kanji (car ls)
+                  yomis (split-string (cadr ls) "/" t))
+            (setq ttt--maze-rev
+                  (cons (cons kanji yomis) ttt--maze-rev))))))))
+
+(ttt-maze-read-dic)
+
+(ttt-maze-read-rev)
+
+(defun ttt--maze-look-sub (key)
+  (cdr (assoc key ttt--maze-dic)))
+
+(defun ttt--maze-look-tankanji (kanji)
+  (or (cdr (assoc kanji ttt--maze-rev))
+      `(,kanji)))
+
+(defun ttt--maze-flatten (a)
+  "リスト A を平坦化したリストを返す."
+  (if (nlistp a)
+      (list a)
+    (apply 'append (mapcar 'ttt--maze-flatten a))))
+
+(defun ttt--maze-product (s1 s2)
+  "2 つの集合 S1 と S2 の直積集合を返す."
+  (let (result)
+    (dolist (a s1)
+      (dolist (b s2)
+        (push (ttt--maze-flatten (list a b)) result)))
+    (nreverse result)))
+
+(defun ttt--maze-product-list (&rest list)
+  "LIST (n 個の集合) の直積集合を返す."
+  (if (null list)
+      list
+    (let ((a (car list)))
+      (dolist (b (cdr list))
+        (setq a (ttt--maze-product a b)))
+      a)))
+
+(defun ttt--maze-look-yomi (str)
+  (let* ((ls (split-string str "" t))
+         (ls (mapcar #'(lambda (ch) (ttt--maze-look-tankanji ch)) ls))
+         (ls (apply #'ttt--maze-product-list ls))
+         (ls (mapcar #'(lambda (l) (if (listp l) (apply 'concat l) l))
+                     ls)))
+    ls))
+
+(defun ttt--maze-regexp (str)
+  (let* ((str (replace-regexp-in-string "—$" "" str))
+         (re (regexp-quote str))
+         (re (replace-regexp-in-string "[ーぁ-ん]+" ".+" str))
+         (re (concat "^" re "$")))
+    re))
+
+(defun ttt--maze-look-maze (str)
+  (let* ((yomis (ttt--maze-look-yomi str))
+         (ls (mapcar #'ttt--maze-look-sub yomis))
+         (ls (ttt--maze-flatten ls))
+         (re (ttt--maze-regexp str))
+         (ret (seq-filter #'(lambda (elm)
+                              (and (not (string= str (concat elm "—")))
+                                   (not (string= str elm))
+                                   (string-match-p re elm)))
+                          ls)))
+    ret))
+
+;;; ttt-itaiji
+
+(defvar ttt-itaiji-dic (locate-user-emacs-file "itaiji.dic")
+  "*File path of \"itaiji.dic\".")
+
+(defvar ttt--itaiji-dic nil)
+
+(defun ttt-itaiji-read-dic ()
+  (interactive)
+  (when (file-readable-p ttt-itaiji-dic)
+    (setq ttt--itaiji-dic nil)
+    (let* ((str (with-temp-buffer
+                  (insert-file-contents ttt-itaiji-dic)
+                  (buffer-substring-no-properties (point-min) (point-max))))
+           (lines (split-string str "\n" t)))
+      (dolist (line (reverse lines))
+        (let* ((ls (split-string line "" t)))
+          (setq ttt--itaiji-dic (cons ls ttt--itaiji-dic)))))))
+
+(ttt-itaiji-read-dic)
+
+(defun ttt--itaiji-look-sub (key)
+  (catch 'tag
+    (dolist (ls ttt--itaiji-dic)
+      (when (member key ls)
+        (let* (ret)
+          (dolist (ch ls)
+            (if (not (string= ch key))
+                (setq ret (cons ch ret))))
+          (throw 'tag (reverse ret)))))
+    nil))
+
+;;; ttt-reduce
+
+(defun ttt--invalidate-all (str)
+  (replace-regexp-in-string
+   "@m" "◇"
+   (replace-regexp-in-string "@b" "◆" str)))
+
+(defun ttt--reduce (str)
+  (save-match-data
+    (if (not (string-match "\\(.*\\)\\(@[bm]\\)\\(.*\\)" str))
+        (ttt--invalidate-all str)
+      (let* ((str1 (match-string 1 str))
+             (str2 (match-string 2 str))
+             (str3 (match-string 3 str))
+             (ls (split-string str3 "" t))
+             a b s cand c tmp)
+        (cond ((string= "@b" str2)
+               (if (< (length ls) 2)
+                   (ttt--invalidate-all str)
+                 (setq a (nth 0 ls)
+                       b (nth 1 ls)
+                       cand (ttt--bushu-look a b))
+                 (if (< (length cand) 1)
+                     (ttt--invalidate-all str)
+                   (setq c (car cand))
+                   (message (ttt--code-help-str c (concat a b))) ; XXX
+                   (ttt--reduce (concat str1 c (substring str3 2))))))
+              ;;
+              ((string= "@m" str2)
+               (if (< (length ls) 1)
+                   (ttt--invalidate-all str)
+                 (setq s str3
+                       cand (append
+                             (ttt--itaiji-look-sub s)
+                             (ttt--maze-look-maze s)
+                             (ttt--maze-look-maze (concat s "—"))))
+                 (dolist (c cand)
+                   (if (and (not (member c tmp)) (not (string= c s)))
+                       (setq tmp (cons c tmp))))
+                 (setq cand (reverse tmp))
+                 (if (= 0 (length cand))
+                     (ttt--invalidate-all str)
+                   (if (= 1(length cand))
+                       (setq c (car cand))
+                     (setq c (ido-completing-read
+                              (concat "reduce ◇" s " to: ") cand nil t)))
+                   (if (string= "" c)
+                       (ttt--invalidate-all str)
+                     (message (ttt--code-help-str c s))
+                     (ttt--reduce (concat str1 c))))))
+              ;;
+              (t (ttt--invalidate-all str)))))))
 
 ;;; ttt-kkc
 
