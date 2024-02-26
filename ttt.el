@@ -814,11 +814,12 @@ Does not include code for char included in string CERTAIN."
     ,(locate-user-emacs-file "bushu.rev"))
   "*List of bushu rev file paths.")
 
-(defvar ttt-bushu--rev nil)
+(defvar ttt-bushu--rev nil "Alist of kanji to bushus.")
 
-(defvar ttt-bushu--dic nil)
+(defvar ttt-bushu--dic nil "Alist of bushus string to kanji.")
 
 (defun ttt-bushu-load-rev ()
+  "Load bushu dictionaries specified by `ttt-bushu-rev'."
   (interactive)
   (save-match-data
     (setq ttt-bushu--rev nil
@@ -850,13 +851,16 @@ Does not include code for char included in string CERTAIN."
 ;; (message "Loading bushu.rev...done")
 
 (defun ttt-bushu--look-sub (a b)
+  "Return kanji consisting of bushus A and B."
   (nth 1 (assoc (concat a b) ttt-bushu--dic)))
 
 (defun ttt-bushu--look-rev (c)
+  "Return bushus of kanji C."
   (or (cdr (assoc c ttt-bushu--rev))
       `(,c "")))
 
 (defun ttt-bushu--look-one-sided (a b)
+  "Return list of kanjis got by operations on bushus A and B (in this order)."
   (let* ((ret nil)
          (a12 (ttt-bushu--look-rev a)) (a1 (nth 0 a12)) (a2 (nth 1 a12))
          (b12 (ttt-bushu--look-rev b)) (b1 (nth 0 b12)) (b2 (nth 1 b12))
@@ -886,6 +890,7 @@ Does not include code for char included in string CERTAIN."
     (reverse ret)))
 
 (defun ttt-bushu-look (a b)
+  "Return list of kanjis got by operation on bushus A and B."
   (let* ((ls (append (ttt-bushu--look-one-sided a b)
                      (ttt-bushu--look-one-sided b a))))
     (seq-filter #'(lambda (c) (and (not (string= "" c))
@@ -902,9 +907,10 @@ Does not include code for char included in string CERTAIN."
     ,(locate-user-emacs-file "greece.maz"))
   "*List of maze yom/maz file paths.")
 
-(defvar ttt-maze--yom nil)
+(defvar ttt-maze--yom nil "Alist of yomi regexp to candidate.")
 
 (defun ttt-maze-load-yom ()
+  "Load maze dictionaries specified by `ttt-maze-yom'."
   (interactive)
   (save-match-data
     (setq ttt-maze--yom nil)
@@ -944,6 +950,7 @@ Does not include code for char included in string CERTAIN."
 ;; (message "Loading maze.yom...done")
 
 (defun ttt-maze-look (str)
+  "Return list of candidates for yomi STR."
   (save-match-data
     (let* ((ret (seq-filter #'(lambda (ls)
                                 (let* ((re (nth 0 ls))
@@ -962,9 +969,10 @@ Does not include code for char included in string CERTAIN."
     ,(locate-user-emacs-file "itaiji.maz"))
   "*List of itaiji maz file paths.")
 
-(defvar ttt-itaiji--maz nil)
+(defvar ttt-itaiji--maz nil "Alist of kanji to itaijis.")
 
 (defun ttt-itaiji-load-maz ()
+  "Load itaiji dictionaries specified by `ttt-itaiji-maz'."
   (interactive)
   (save-match-data
     (setq ttt-itaiji--maz nil)
@@ -998,6 +1006,7 @@ Does not include code for char included in string CERTAIN."
 ;; (message "Loading itaiji.dic...done")
 
 (defun ttt-itaiji-look (key)
+  "Return list of itaijis for kanji KEY."
   (catch 'tag
     (dolist (ls ttt-itaiji--maz)
       (when (member key ls)
@@ -1007,12 +1016,14 @@ Does not include code for char included in string CERTAIN."
 ;;; ttt-reduce
 
 (defun ttt--invalidate-all (str)
+  "Return new string invalidating all redexes in string STR."
   (save-match-data
     (replace-regexp-in-string
      "@m" "◇"
      (replace-regexp-in-string "@b" "◆" str))))
 
 (defun ttt-reduce (str)
+  "Return new string reducing redexes in string STR with aux conversions."
   (save-match-data
     (if (not (string-match "\\(.*\\)\\(@[bm]\\)\\(.*\\)" str))
         (ttt--invalidate-all str)

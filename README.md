@@ -45,6 +45,53 @@ TT-code をタイプして <kbd>M-j</kbd> (`ttt-do-ttt`) を入力すると、�
 * 入力: `default jg` <kbd>M-j</kbd> `nil hg,fhf` <kbd>M-j</kbd>
 * 結果: `defaultはnilです。`
 
+## 補助変換
+
+補助変換を利用するには、辞書が必要です。
+[kanchoku/tc](https://github.com/kanchoku/tc) の tcode ディレクトリから以下のファイルを入手して、 `user-emacs-directory` (init.el のあるディレクトリ) に置いてください。
+
+* 部首合成変換に必要: bushu.rev, symbol.rev
+* 交ぜ書き変換に必要: pd_kihon.yom, jukujiku.maz, greece.maz
+* 異体字変換に必要: itaiji.maz
+
+mazegaki.dic は必要ありません。
+
+### 部首合成変換 (前置型)
+
+`jfjf` に続く 2 文字が合成されます。
+
+* 例: `jfjf` `pw` `ha` <kbd>M-j</kbd> → `森`
+
+再帰的な変換も可能です。
+
+* 例: `jfjf` `pg` `jfjf` `pw` `pw` <kbd>M-j</kbd> → `淋`
+
+変換できない組み合わせの場合は、 `jfjf` は `◆` となって残ります。
+
+* 例: `jfjf` `l4` `z/` <kbd>M-j</kbd> → `◆漢字`
+
+### 交ぜ書き変換 (前置型)
+
+`fjfj` に続く読み (漢字を含んでいてもよい) が変換されます。
+
+* 例: `fjfj` `ml1fhr` <kbd>M-j</kbd> → `完璧`
+
+変換候補が複数ある場合は、ミニバッファに候補が表示されます。
+<kbd>C-s</kbd> / <kbd>C-r</kbd> で選択し <kbd>RET</kbd> で確定すると入力できます。
+
+* 例: `fjfj` `jendz/` <kbd>M-j</kbd> → `{換字 | 漢字}` <kbd>C-s</kbd> <kbd>RET</kbd> → `漢字`
+
+変換は単語変換です。
+活用する語は、活用語尾を除いた読み (語幹) で変換してください。
+変換できない読みの場合は、 `fjfj` は `◇` となって残ります。
+
+* 例: `fjfj` `kd.uhdks` <kbd>M-j</kbd> → `◇のぞいた`
+* 例: `fjfj` `kd.u` <kbd>M-j</kbd> → `{除 | 覗 | 望 | 臨}`
+
+異体字変換を含んでいます。
+
+* 例: `fjfj` `eg` <kbd>M-j</kbd> → `廣`
+
 ## Tips
 
 ### `ttt-do-ttt` の連続実行
@@ -208,7 +255,7 @@ Dvorak キーボードで ttt.el を使うには、init.el に次のように書
 
 変換テーブルに新しく定義を追加するには `M-x ttt-userdef-define` を実行し、定義したい文字とコードを指定します。
 
-たとえば、『﨑』を `43at` に割り当てるには `M-x ttt-userdef-define RET 﨑 RET 43at RET` と入力します。
+たとえば、『﨑』を `jfa5` に割り当てるには `M-x ttt-userdef-define RET 﨑 RET jfa5 RET` と入力します。
 
 コードに指定できるパターンは `??` (本表), `jf??` (右表, Dvorak では `hu??`), `fj??` (左表, Dvorak では `uh??`), `43??` (白表), `78??` (黒表) の 5 通りです。
 
