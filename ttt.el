@@ -78,7 +78,8 @@
 
 (defcustom ttt-keep-remainder nil
   "If non-nil, ttt keeps remainder to show virtual keyboard."
-  :type 'boolean
+  ;; :type 'boolean
+  :type 'sexp
   :group 'ttt)
 
 (defcustom ttt-remove-space nil
@@ -401,9 +402,13 @@ If PREFER-REMAIN is non-nil and result is empty string, output remain instead."
 (defun ttt--decode-string (str)
   "Decode TT-code string STR to Japanese string."
   (ttt--reset)
-  (concat
-   (mapconcat 'ttt--trans (string-to-list str) "")
-   (if ttt-keep-remainder ttt--remain "")))
+  ;; (concat
+  ;;  (mapconcat 'ttt--trans (string-to-list str) "")
+  ;;  (if ttt-keep-remainder ttt--remain "")))
+  (let* ((decoded (mapconcat 'ttt--trans (string-to-list str) ""))
+         (cond0 (and (eq 0 ttt-keep-remainder) (string= "" decoded)))
+         (cond1 (and ttt-keep-remainder (not (eq 0 ttt-keep-remainder)))))
+    (concat decoded (if (or cond0 cond1) ttt--remain ""))))
 
 (defun ttt--regexp-opt-charset-complemented (chars)
   "Return a regexp to match a character not in CHARS."
@@ -455,7 +460,8 @@ Return beginning and end position of decoded string as (BEG . END), or nil."
   (catch 'tag
     (let* ((src (buffer-substring beg end))
            (dst (ttt--decode-string src))
-           (_ (if (and ttt-keep-remainder (not (eq ttt--state ttt-table)))
+           (_ (if (and (eq t ttt-keep-remainder)
+                       (not (eq ttt--state ttt-table)))
                   (throw 'tag nil)))
            (dst (ttt-reduce dst)))
       (if (string= dst src) (throw 'tag nil))
@@ -476,7 +482,8 @@ Return beginning and end position of decoded string as (BEG . END), or nil."
              (ls (ttt--backward src))
              (_ (if (null ls) (throw 'tag nil)))
              (dst (car ls))
-             (_ (if (and ttt-keep-remainder (not (eq ttt--state ttt-table)))
+             (_ (if (and (eq t ttt-keep-remainder)
+                         (not (eq ttt--state ttt-table)))
                     (throw 'tag nil)))
              (dst (ttt-reduce dst))
              (body-len (car (cdr ls)))
@@ -502,7 +509,8 @@ Return beginning and end position of decoded string as (BEG . END), or nil."
            (ls (ttt--backward src))
            (_ (if (null ls) (throw 'tag nil)))
            (dst (car ls))
-           (_ (if (and ttt-keep-remainder (not (eq ttt--state ttt-table)))
+           (_ (if (and (eq t ttt-keep-remainder)
+                       (not (eq ttt--state ttt-table)))
                   (throw 'tag nil)))
            (dst (ttt-reduce dst))
            (body-len (car (cdr ls)))
