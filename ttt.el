@@ -814,17 +814,27 @@ Does not include code for char included in string CERTAIN."
   (ttt--show-vkb)
   ad-return-value)
 
+;;; tcaux dictionary path
+
+(defvar ttt-default-dictionary-directory "~/tcode"
+  "*Path of directory for tcaux dictionaries.")
+
+(defun ttt--dictionary-paths (dictionary-files)
+  "Return list of paths for DICTIONARY-FILES."
+  (mapcar (lambda (file)
+            (expand-file-name file ttt-default-dictionary-directory))
+          dictionary-files))
+
 ;;; ttt-bushu
 
-(defvar ttt-bushu-rev
-  `(,(locate-user-emacs-file "mybushu.rev")
-    ,(locate-user-emacs-file "symbol.rev")
-    ,(locate-user-emacs-file "bushu.rev"))
-  "*List of bushu rev file paths.")
+(defvar ttt-bushu-rev '("symbol.rev" "bushu.rev")
+  "*List of bushu rev files.")
 
 (defvar ttt-bushu--rev nil "Alist of kanji to bushus.")
 
 (defvar ttt-bushu--dic nil "Alist of bushus string to kanji.")
+
+(defvar ttt-bushu--ready nil "Non-nil if bushu is ready.")
 
 (defun ttt-bushu-load-rev ()
   "Load bushu dictionaries specified by `ttt-bushu-rev'."
@@ -833,7 +843,7 @@ Does not include code for char included in string CERTAIN."
     (setq ttt-bushu--rev nil
           ttt-bushu--dic nil)
     (let* ((str (with-temp-buffer
-                  (dolist (f (reverse ttt-bushu-rev))
+                  (dolist (f (reverse (ttt--dictionary-paths ttt-bushu-rev)))
                     (when (file-readable-p f)
                       (insert-file-contents f)
                       (insert "\n")))
@@ -853,10 +863,6 @@ Does not include code for char included in string CERTAIN."
                        (cons `(,(concat (nth 1 ls) (nth 2 ls)) ,(nth 0 ls))
                              ttt-bushu--dic)))
                 (t nil)))))))
-
-;; (message "Loading bushu.rev...")
-(ttt-bushu-load-rev)
-;; (message "Loading bushu.rev...done")
 
 (defun ttt-bushu--look-sub (a b)
   "Return kanji consisting of bushus A and B."
@@ -899,6 +905,11 @@ Does not include code for char included in string CERTAIN."
 
 (defun ttt-bushu-look (a b)
   "Return list of kanjis got by operation on bushus A and B."
+  (when (not ttt-bushu--ready)
+    (message "Loading bushu.rev...")
+    (ttt-bushu-load-rev)
+    (message "Loading bushu.rev...done")
+    (setq ttt-bushu--ready t))
   (let* ((ls (append (ttt-bushu--look-one-sided a b)
                      (ttt-bushu--look-one-sided b a))))
     (seq-filter #'(lambda (c) (and (not (string= "" c))
@@ -908,14 +919,12 @@ Does not include code for char included in string CERTAIN."
 
 ;;; ttt-maze
 
-(defvar ttt-maze-yom
-  `(,(locate-user-emacs-file "mymaze.yom")
-    ,(locate-user-emacs-file "pd_kihon.yom")
-    ,(locate-user-emacs-file "jukujiku.maz")
-    ,(locate-user-emacs-file "greece.maz"))
-  "*List of maze yom/maz file paths.")
+(defvar ttt-maze-yom '("pd_kihon.yom" "jukujiku.maz" "greece.maz")
+  "*List of maze yom/maz files.")
 
 (defvar ttt-maze--yom nil "Alist of yomi regexp to candidate.")
+
+(defvar ttt-maze--ready nil "Non-nil if maze is ready.")
 
 (defun ttt-maze-load-yom ()
   "Load maze dictionaries specified by `ttt-maze-yom'."
@@ -923,7 +932,7 @@ Does not include code for char included in string CERTAIN."
   (save-match-data
     (setq ttt-maze--yom nil)
     (let* ((str (with-temp-buffer
-                  (dolist (f (reverse ttt-maze-yom))
+                  (dolist (f (reverse (ttt--dictionary-paths ttt-maze-yom)))
                     (when (file-readable-p f)
                       (insert-file-contents f)
                       (insert "\n")))
@@ -953,12 +962,13 @@ Does not include code for char included in string CERTAIN."
                  (setq ttt-maze--yom
                        (cons `(,re ,cand) ttt-maze--yom)))))))))
 
-;; (message "Loading maze.yom...")
-(ttt-maze-load-yom)
-;; (message "Loading maze.yom...done")
-
 (defun ttt-maze-look (str)
   "Return list of candidates for yomi STR."
+  (when (not ttt-maze--ready)
+    (message "Loading maze.yom...")
+    (ttt-maze-load-yom)
+    (message "Loading maze.yom...done")
+    (setq ttt-maze--ready t))
   (save-match-data
     (let* ((ret (seq-filter #'(lambda (ls)
                                 (let* ((re (nth 0 ls))
@@ -972,12 +982,12 @@ Does not include code for char included in string CERTAIN."
 
 ;;; ttt-itaiji
 
-(defvar ttt-itaiji-maz
-  `(,(locate-user-emacs-file "myitaiji.txt")
-    ,(locate-user-emacs-file "itaiji.maz"))
-  "*List of itaiji maz file paths.")
+(defvar ttt-itaiji-maz '("itaiji.maz")
+  "*List of itaiji maz files.")
 
 (defvar ttt-itaiji--maz nil "Alist of kanji to itaijis.")
+
+(defvar ttt-itaiji--ready nil "Non-nil if itaiji is ready.")
 
 (defun ttt-itaiji-load-maz ()
   "Load itaiji dictionaries specified by `ttt-itaiji-maz'."
@@ -985,7 +995,7 @@ Does not include code for char included in string CERTAIN."
   (save-match-data
     (setq ttt-itaiji--maz nil)
     (let* ((str (with-temp-buffer
-                  (dolist (f (reverse ttt-itaiji-maz))
+                  (dolist (f (reverse (ttt--dictionary-paths ttt-itaiji-maz)))
                     (when (file-readable-p f)
                       (insert-file-contents f)
                       (insert "\n")))
@@ -1009,12 +1019,13 @@ Does not include code for char included in string CERTAIN."
                      ))))))
       (setq ttt-itaiji--maz (reverse ttt-itaiji--maz)))))
 
-;; (message "Loading itaiji.dic...")
-(ttt-itaiji-load-maz)
-;; (message "Loading itaiji.dic...done")
-
 (defun ttt-itaiji-look (key)
   "Return list of itaijis for kanji KEY."
+  (when (not ttt-itaiji--ready)
+    (message "Loading itaiji.dic...")
+    (ttt-itaiji-load-maz)
+    (message "Loading itaiji.dic...done")
+    (setq ttt-itaiji--ready t))
   (catch 'tag
     (dolist (ls ttt-itaiji--maz)
       (when (member key ls)

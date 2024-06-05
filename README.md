@@ -48,7 +48,7 @@ TT-code をタイプして <kbd>M-j</kbd> (`ttt-do-ttt`) を入力すると、�
 ## 補助変換
 
 補助変換を利用するには、辞書が必要です。
-[kanchoku/tc](https://github.com/kanchoku/tc) の tcode ディレクトリから以下のファイルを入手して、 `user-emacs-directory` (init.el のあるディレクトリ) に置いてください。
+[kanchoku/tc](https://github.com/kanchoku/tc) の tcode ディレクトリから以下のファイルを入手して、 `ttt-default-dictionary-directory` で指定したディレクトリ (デフォルトは `~/tcode`) に置いてください。
 
 * 部首合成変換に必要: bushu.rev, symbol.rev
 * 交ぜ書き変換に必要: pd_kihon.yom, jukujiku.maz, greece.maz
