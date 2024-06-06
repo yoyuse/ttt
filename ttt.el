@@ -906,9 +906,9 @@ Does not include code for char included in string CERTAIN."
 (defun ttt-bushu-look (a b)
   "Return list of kanjis got by operation on bushus A and B."
   (when (not ttt-bushu--ready)
-    (message "Loading bushu.rev...")
+    (message "Loading bushu...")
     (ttt-bushu-load-rev)
-    (message "Loading bushu.rev...done")
+    (message "Loading bushu...done")
     (setq ttt-bushu--ready t))
   (let* ((ls (append (ttt-bushu--look-one-sided a b)
                      (ttt-bushu--look-one-sided b a))))
@@ -965,9 +965,9 @@ Does not include code for char included in string CERTAIN."
 (defun ttt-maze-look (str)
   "Return list of candidates for yomi STR."
   (when (not ttt-maze--ready)
-    (message "Loading maze.yom...")
+    (message "Loading maze...")
     (ttt-maze-load-yom)
-    (message "Loading maze.yom...done")
+    (message "Loading maze...done")
     (setq ttt-maze--ready t))
   (save-match-data
     (let* ((ret (seq-filter #'(lambda (ls)
@@ -1022,9 +1022,9 @@ Does not include code for char included in string CERTAIN."
 (defun ttt-itaiji-look (key)
   "Return list of itaijis for kanji KEY."
   (when (not ttt-itaiji--ready)
-    (message "Loading itaiji.dic...")
+    (message "Loading itaiji...")
     (ttt-itaiji-load-maz)
-    (message "Loading itaiji.dic...done")
+    (message "Loading itaiji...done")
     (setq ttt-itaiji--ready t))
   (catch 'tag
     (dolist (ls ttt-itaiji--maz)
