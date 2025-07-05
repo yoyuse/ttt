@@ -1,6 +1,6 @@
 ;;; ttt.el --- Tiny TT-code Translation              -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2004-2024  YUSE Yosihiro
+;; Copyright (C) 2004-2025  YUSE Yosihiro
 
 ;; Author: YUSE Yosihiro <yoyuse@gmail.com>
 ;; Keywords: input method, japanese
@@ -516,9 +516,16 @@ Return beginning and end position of decoded string as (BEG . END), or nil."
            (body-len (car (cdr ls)))
            (tail-len (car (cdr (cdr ls))))
            (n (+ body-len tail-len)))
-      (while (< i n)
-        (isearch-pop-state)
-        (setq i (1+ i)))
+      ;; (while (< i n)
+      ;;   (isearch-pop-state)
+      ;;   (setq i (1+ i)))
+      ;; ;; (isearch-pop-state) で取り出されるのは一文字ずつとは限らない
+      (while (and (< 1 (length isearch-cmds))
+                  (< i n))
+        (let ((l (length isearch-string)))
+          (isearch-pop-state)
+          (setq i (+ i (- l (length isearch-string))))))
+      ;; /
       (setq i 0)
       (while (< i (length dst))
         (isearch-process-search-string (substring dst i (1+ i))
