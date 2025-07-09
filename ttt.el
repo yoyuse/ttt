@@ -695,22 +695,41 @@ Returned regexp is put in parentheses if WITH-PAREN-P is non-nil."
         (concat re-str1 "\\|" re-str2)
         ))))
 
-(defadvice isearch-message-prefix (after ttt-status activate)
+;; (defadvice isearch-message-prefix (after ttt-status activate)
+;;   "Adviced by ttt."
+;;   (let ((ret ad-return-value)
+;;         (str "[ttt]"))
+;;     (when (and (boundp 'migemo-isearch-enable-p)
+;;                migemo-isearch-enable-p
+;;                ttt-isearch-enable-p
+;;                (not (or isearch-regexp)))
+;;       (setq ad-return-value (concat str " " ret)))))
+
+(defun ttt--isearch-message-prefix-ad (orig-val)
   "Adviced by ttt."
-  (let ((ret ad-return-value)
-        (str "[ttt]"))
-    (when (and (boundp 'migemo-isearch-enable-p)
-               migemo-isearch-enable-p
-               ttt-isearch-enable-p
-               (not (or isearch-regexp)))
-      (setq ad-return-value (concat str " " ret)))))
+  (let ((str "[ttt]"))
+    (if (and (boundp 'migemo-isearch-enable-p)
+             migemo-isearch-enable-p
+             ttt-isearch-enable-p
+             (not (or isearch-regexp)))
+        (concat str " " orig-val)
+      orig-val)))
+(advice-add 'isearch-message-prefix :filter-return #'ttt--isearch-message-prefix-ad)
+
+;; ;; advice で migemo-get-pattern を書き換える
+;; (defadvice migemo-get-pattern (around ttt--get-pattern-ad activate)
+;;   "Adviced by ttt."
+;;   (if (and ttt-isearch-enable-p)
+;;       (setq ad-return-value (ttt--get-pattern (ad-get-arg 0)))
+;;     ad-do-it))
 
 ;; advice で migemo-get-pattern を書き換える
-(defadvice migemo-get-pattern (around ttt--get-pattern-ad activate)
+(defun ttt--get-pattern-ad (orig-fun &rest args)
   "Adviced by ttt."
   (if (and ttt-isearch-enable-p)
-      (setq ad-return-value (ttt--get-pattern (ad-get-arg 0)))
-    ad-do-it))
+      (ttt--get-pattern (car args))
+    (apply orig-fun args)))
+(advice-add 'migemo-get-pattern :around #'ttt--get-pattern-ad)
 
 ;;; ttt-rev
 
@@ -811,15 +830,25 @@ Does not include code for char included in string CERTAIN."
               (setq str (concat str " ")))))
       (message "%s" str))))
 
-(defadvice ttt-do-ttt (after ttt-show-vkb-ad activate)
-  "Advice to show virtual keyboard."
-  (ttt--show-vkb)
-  ad-return-value)
+;; (defadvice ttt-do-ttt (after ttt-show-vkb-ad activate)
+;;   "Advice to show virtual keyboard."
+;;   (ttt--show-vkb)
+;;   ad-return-value)
 
-(defadvice ttt-isearch-do-ttt (after ttt-isearch-show-vkb-ad activate)
+(defun ttt--show-vkb-ad ()
   "Advice to show virtual keyboard."
-  (ttt--show-vkb)
-  ad-return-value)
+  (ttt--show-vkb))
+(advice-add 'ttt-do-ttt :after #'ttt--show-vkb-ad)
+
+;; (defadvice ttt-isearch-do-ttt (after ttt-isearch-show-vkb-ad activate)
+;;   "Advice to show virtual keyboard."
+;;   (ttt--show-vkb)
+;;   ad-return-value)
+
+(defun ttt--isearch-show-vkb-ad ()
+  "Advice to show virtual keyboard."
+  (ttt--show-vkb))
+(advice-add 'ttt-isearch-do-ttt :after #'ttt--isearch-show-vkb-ad)
 
 ;;; tcaux dictionary path
 

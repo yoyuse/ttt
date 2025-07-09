@@ -1,6 +1,6 @@
 ;;; kkc-maze.el --- kkc with mazegaki conversion     -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2019-2024  YUSE Yosihiro
+;; Copyright (C) 2019-2025  YUSE Yosihiro
 
 ;; Author: YUSE Yosihiro <yoyuse@gmail.com>
 ;; Keywords: input method, japanese
@@ -380,19 +380,34 @@ LEN が MAZE の長さより短いときは, MAZE の最初の LEN 文字だけ�
   :group 'ttt
   :type 'boolean)
 
-(defadvice kkc-lookup-key (around kkc-maze-kkc-lookup-key-ad activate)
-  "Adviced by ttt."
-  (if kkc-maze-enable-maze-p
-      (setq ad-return-value (kkc-maze-kkc-lookup-key (ad-get-arg 0)
-                                                     (ad-get-arg 1)
-                                                     (ad-get-arg 2)))
-    ad-do-it))
+;; (defadvice kkc-lookup-key (around kkc-maze-kkc-lookup-key-ad activate)
+;;   "Adviced by ttt."
+;;   (if kkc-maze-enable-maze-p
+;;       (setq ad-return-value (kkc-maze-kkc-lookup-key (ad-get-arg 0)
+;;                                                      (ad-get-arg 1)
+;;                                                      (ad-get-arg 2)))
+;;     ad-do-it))
 
-(defadvice kkc-next-phrase (around kkc-maze-kkc-next-phrase-ad activate)
+(defun kkc-maze--kkc-lookup-key-ad (orig-fun &rest args)
   "Adviced by ttt."
   (if kkc-maze-enable-maze-p
-      (setq ad-return-value (kkc-maze-kkc-next-phrase))
-    ad-do-it))
+      ;; (kkc-maze-kkc-lookup-key (nth 0 args) (nth 1 args) (nth 2 args))
+      (apply #'kkc-maze-kkc-lookup-key args)
+    (apply orig-fun args)))
+(advice-add 'kkc-lookup-key :around #'kkc-maze--kkc-lookup-key-ad)
+
+;; (defadvice kkc-next-phrase (around kkc-maze-kkc-next-phrase-ad activate)
+;;   "Adviced by ttt."
+;;   (if kkc-maze-enable-maze-p
+;;       (setq ad-return-value (kkc-maze-kkc-next-phrase))
+;;     ad-do-it))
+
+(defun kkc-maze--kkc-next-phrase-ad (orig-fun)
+  "Adviced by ttt."
+  (if kkc-maze-enable-maze-p
+      (kkc-maze-kkc-next-phrase)
+    (apply orig-fun)))
+(advice-add 'kkc-next-phrase :around #'kkc-maze--kkc-next-phrase-ad)
 
 ;;; provide
 
